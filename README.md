@@ -1,6 +1,18 @@
 # Pre-Colonial Lenape Settlements of the Bronx
 
+**Live site:** https://emilezounon.github.io/lenape-bronx-map/
+
 Interactive map visualization documenting Indigenous geography before European contact (pre-1609). This single-page application uses the Google Maps JavaScript API to render settlement locations, trails, waterways, and landmarks of the Lenape (Delaware) people who inhabited the area now known as the Bronx.
+
+## Features
+
+- **12 documented settlement sites** with custom emoji markers, territory-colored borders, and pulsing highlights
+- **7 toggleable map layers:** Settlements, Territories, Bronx River, Trail Routes, Landmarks, Ecological Zones, Neighboring Peoples
+- **Collapsible sidebar** with search, territory filter (All/Weckquaesgeek/Siwanoy), stats dashboard, and full detail panel
+- **Interactive timeline** spanning ~4000 BCE to 2015 with click-to-fly navigation and keyboard support
+- **Sources modal** with full academic references
+- **Mobile responsive** design down to 375px
+- **Dark theme** with earthy color palette
 
 ## Google Maps API Setup
 
@@ -27,43 +39,12 @@ Then open `index.html` and replace:
 - `YOUR_API_KEY` with your API key
 - `YOUR_MAP_ID` with your Map ID
 
-## What Has Been Built
+## Quick Start
 
-### Phase 1: HTML Skeleton & Data Constants (Task 1-2)
-- Full HTML skeleton with dark-themed CSS variables and Google Maps API loading
-- All data constants: SETTLEMENTS (12 sites), TRAILS (3 routes), BRONX_RIVER, TERRITORY_POLYGONS, LANDMARKS, ECOLOGICAL_ZONES, NEIGHBORING_TERRITORIES, SETTLEMENT_TYPES, TIMELINE, STATISTICS
-- Basic `initMap()` function creating the map
-
-### Phase 2: All 7 Map Layers & Layer Toggle Panel (Tasks 3-6)
-- **Settlement Markers** (12 custom HTML markers with emoji icons, territory-colored borders, pulse animation for highlighted sites)
-- **Territory Polygons** (Weckquaesgeek in blue, Siwanoy in red, semi-transparent fill)
-- **Bronx River** (dashed cyan polyline with InfoWindow on click)
-- **Trail Routes** (purple polylines for Wickquasgeck Trail and Shore Path; wave marker for The Wading Place) -- default OFF
-- **Landmarks** (The Grey Mare boulder, Treaty Oak) -- default OFF
-- **Ecological Zones** (6 zones: salt marshes, ridges, tidal inlets, birch bark country, sedge plains, hunting grounds) -- default OFF
-- **Neighboring Territories** (Wappinger, Sintsink, Canarsee, Rockaway) -- default OFF
-- **Layer Toggle Panel** (fixed bottom-right panel with checkboxes for all 7 layers, color swatches, collapse/expand button)
-- Shared InfoWindow for all clickable features
-
-### Phase 3: Sidebar, Timeline & Legend (Tasks 7-9)
-- **Collapsible Sidebar** (380px left panel with slide toggle)
-  - Title and subtitle header
-  - Search input (filters settlements by name, location, or meaning)
-  - Territory filter buttons (All / Weckquaesgeek / Siwanoy) with color-coded active states
-  - Stats grid (6 cards: Documented Sites, Years of Habitation, Siwanoy Pre-Contact, Last Settlement, Lodges at Snakapins, Acres Pell Treaty)
-  - Settlement list (clickable items that fly to the marker and show detail)
-  - Detail panel overlay (name, meaning, badges, modern location, historical significance, coordinates)
-  - Sidebar collapse/expand with hamburger/close icon toggle
-- **Interactive Timeline Bar** (fixed 72px bar at page bottom)
-  - Horizontally scrollable track with 10 historical events (~4000 BCE to 2015)
-  - Each event shows date, dot indicator, and label
-  - Clicking an event flies the map to the related settlement and shows its detail
-  - Keyboard navigation with ArrowLeft/ArrowRight keys
-  - Active state with cyan glow on selected event dot
-- **Legend** (fixed top-right overlay)
-  - Territory colors (Weckquaesgeek blue, Siwanoy red, Aquahung cyan)
-  - Settlement type icons (8 types with emoji markers)
-- **Layout adjustments**: Layer panel repositioned to sit above the 72px timeline bar
+1. Clone the repo: `git clone https://github.com/EmileZounon/lenape-bronx-map.git`
+2. Set up your Google Maps API key (see below)
+3. Replace `YOUR_API_KEY` and `YOUR_MAP_ID` in `index.html`
+4. Open `index.html` in a browser or serve locally
 
 ## Local Development
 

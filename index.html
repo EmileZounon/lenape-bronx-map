@@ -200,6 +200,10 @@
       scrollbar-color: var(--border) transparent;
     }
 
+    .sidebar__mobile-close {
+      display: none;
+    }
+
     .sidebar__title {
       font-size: 20px;
       font-weight: 700;
@@ -772,6 +776,26 @@
       .sidebar__toggle {
         right: -44px;
       }
+      .sidebar__mobile-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        width: 40px;
+        height: 40px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        color: var(--text);
+        font-size: 22px;
+        cursor: pointer;
+        z-index: 10;
+      }
+      .sidebar__mobile-close:hover {
+        background: var(--border);
+      }
       .marker {
         width: 34px;
         height: 34px;
@@ -834,6 +858,7 @@
       <span id="sidebar-toggle-icon">&#9776;</span>
     </button>
     <div class="sidebar__content">
+      <button id="sidebar-mobile-close" class="sidebar__mobile-close" aria-label="Close sidebar">&times;</button>
       <h1 class="sidebar__title">Pre-Colonial Lenape<br>Settlements of the Bronx</h1>
       <p class="sidebar__subtitle">Indigenous geography before European contact (pre-1609)</p>
 
@@ -1852,6 +1877,12 @@
         const icon = document.getElementById('sidebar-toggle-icon');
         sidebar.classList.toggle('sidebar--collapsed');
         icon.innerHTML = sidebar.classList.contains('sidebar--collapsed') ? '&#9776;' : '&times;';
+      });
+
+      // Mobile sidebar close button
+      document.getElementById('sidebar-mobile-close').addEventListener('click', () => {
+        document.getElementById('sidebar').classList.add('sidebar--collapsed');
+        document.getElementById('sidebar-toggle-icon').innerHTML = '&#9776;';
       });
 
       // Search

@@ -40,6 +40,7 @@
     #map {
       width: 100%;
       height: 100vh;
+      transition: margin-left 0.3s ease;
     }
 
     /* ── Settlement markers ─────────────────────────────────────────── */
@@ -148,9 +149,342 @@
       border-radius: 3px;
       flex-shrink: 0;
     }
+
+    /* ── Sidebar ─────────────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 380px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      z-index: 200;
+      display: flex;
+      transition: transform 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .sidebar--collapsed {
+      transform: translateX(-380px);
+    }
+
+    .sidebar__toggle {
+      position: absolute;
+      top: 16px;
+      right: -48px;
+      width: 44px;
+      height: 44px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: none;
+      border-radius: 0 8px 8px 0;
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 4px 2px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar__toggle:hover {
+      background: var(--border);
+    }
+
+    .sidebar__content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .sidebar__title {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .sidebar__subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    /* Search */
+    .sidebar__search {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      margin-bottom: 12px;
+    }
+
+    .sidebar__search:focus {
+      border-color: var(--accent);
+    }
+
+    .sidebar__search::placeholder {
+      color: var(--text-muted);
+    }
+
+    /* Territory Filter */
+    .sidebar__filter {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 20px;
+    }
+
+    .filter-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .filter-btn:hover {
+      border-color: var(--text-muted);
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .filter-btn--weck.active {
+      background: var(--weckquaesgeek);
+      border-color: var(--weckquaesgeek);
+    }
+
+    .filter-btn--siw.active {
+      background: var(--siwanoy);
+      border-color: var(--siwanoy);
+    }
+
+    /* Stats */
+    .sidebar__stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 8px;
+      text-align: center;
+    }
+
+    .stat-card__value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      display: block;
+    }
+
+    .stat-card__label {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* Settlement List */
+    .sidebar__list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .settlement-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .settlement-item:hover {
+      border-color: var(--accent);
+      background: rgba(34, 211, 238, 0.05);
+    }
+
+    .settlement-item__icon {
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .settlement-item__info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .settlement-item__name {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .settlement-item__location {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .settlement-item__territory {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .settlement-item__territory--weck {
+      background: rgba(59, 130, 246, 0.15);
+      color: #3b82f6;
+    }
+
+    .settlement-item__territory--siw {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+    }
+
+    /* Detail Panel */
+    .sidebar__detail {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--surface);
+      padding: 24px 20px;
+      overflow-y: auto;
+      z-index: 10;
+    }
+
+    .detail__close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .detail__close:hover {
+      background: var(--border);
+    }
+
+    .detail__name {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      padding-right: 44px;
+    }
+
+    .detail__meaning {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+
+    .detail__badges {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .detail__badge {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .detail__section {
+      margin-bottom: 16px;
+    }
+
+    .detail__section-title {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .detail__section-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+    }
+
+    .detail__coordinates {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
+  <aside id="sidebar" class="sidebar sidebar--collapsed">
+    <button id="sidebar-toggle" class="sidebar__toggle" aria-label="Toggle sidebar">
+      <span id="sidebar-toggle-icon">&#9776;</span>
+    </button>
+    <div class="sidebar__content">
+      <h1 class="sidebar__title">Pre-Colonial Lenape<br>Settlements of the Bronx</h1>
+      <p class="sidebar__subtitle">Indigenous geography before European contact (pre-1609)</p>
+
+      <input id="search" type="search" placeholder="Search by name or location..." class="sidebar__search" aria-label="Search settlements">
+
+      <div id="territory-filter" class="sidebar__filter">
+        <button data-territory="all" class="filter-btn active">All</button>
+        <button data-territory="Weckquaesgeek" class="filter-btn filter-btn--weck">Weckquaesgeek</button>
+        <button data-territory="Siwanoy" class="filter-btn filter-btn--siw">Siwanoy</button>
+      </div>
+
+      <div id="stats" class="sidebar__stats"></div>
+
+      <div id="settlement-list" class="sidebar__list"></div>
+
+      <div id="detail-panel" class="sidebar__detail" hidden>
+        <button id="detail-close" class="detail__close" aria-label="Close detail">&times;</button>
+        <div id="detail-content"></div>
+      </div>
+    </div>
+  </aside>
+
   <div id="map"></div>
 
   <div id="layer-panel" class="layer-panel">
@@ -661,8 +995,117 @@
     // ── Module-level references ──────────────────────────────────────
     let map, settlementMarkers = [], infoWindow, layers;
 
+    // Current filter state
+    let currentTerritory = 'all';
+
+    // Render stats
+    function renderStats() {
+      const container = document.getElementById('stats');
+      container.innerHTML = STATISTICS.map(s => `
+        <div class="stat-card">
+          <span class="stat-card__value">${s.value}</span>
+          <span class="stat-card__label">${s.label}</span>
+        </div>
+      `).join('');
+    }
+
+    // Render settlement list
+    function renderSettlementList(filter = '') {
+      const container = document.getElementById('settlement-list');
+      const query = filter.toLowerCase();
+
+      const filtered = SETTLEMENTS.filter(site => {
+        const matchesTerritory = currentTerritory === 'all' || site.territory === currentTerritory;
+        const matchesSearch = !query ||
+          site.name.toLowerCase().includes(query) ||
+          site.modernLocation.toLowerCase().includes(query) ||
+          site.meaning.toLowerCase().includes(query);
+        return matchesTerritory && matchesSearch;
+      });
+
+      container.innerHTML = filtered.map(site => {
+        const territoryClass = site.territory === 'Weckquaesgeek' ? 'weck' : 'siw';
+        return `
+          <div class="settlement-item" data-id="${site.id}" onclick="selectSettlement(${site.id})">
+            <span class="settlement-item__icon">${site.icon}</span>
+            <div class="settlement-item__info">
+              <div class="settlement-item__name">${site.name}</div>
+              <div class="settlement-item__location">${site.modernLocation}</div>
+            </div>
+            <span class="settlement-item__territory settlement-item__territory--${territoryClass}">
+              ${site.territory === 'Weckquaesgeek' ? 'Weck.' : 'Siw.'}
+            </span>
+          </div>
+        `;
+      }).join('');
+
+      // Also update marker visibility
+      settlementMarkers.forEach((marker, i) => {
+        const site = SETTLEMENTS[i];
+        const matchesTerritory = currentTerritory === 'all' || site.territory === currentTerritory;
+        const matchesSearch = !query ||
+          site.name.toLowerCase().includes(query) ||
+          site.modernLocation.toLowerCase().includes(query) ||
+          site.meaning.toLowerCase().includes(query);
+        marker.map = (matchesTerritory && matchesSearch) ? map : null;
+      });
+    }
+
+    // Select a settlement
+    function selectSettlement(id) {
+      const site = SETTLEMENTS.find(s => s.id === id);
+      if (site) {
+        showSettlementDetail(site);
+        // Fly to settlement
+        map.panTo(site.coordinates);
+        map.setZoom(15);
+      }
+    }
+
+    // Show settlement detail
     function showSettlementDetail(site) {
-      console.log('Selected:', site.name);
+      const panel = document.getElementById('detail-panel');
+      const content = document.getElementById('detail-content');
+      const sidebar = document.getElementById('sidebar');
+
+      // Open sidebar if collapsed
+      sidebar.classList.remove('sidebar--collapsed');
+      document.getElementById('sidebar-toggle-icon').innerHTML = '&times;';
+
+      const typeInfo = SETTLEMENT_TYPES[site.type] || {};
+      const territoryColor = site.territory === 'Weckquaesgeek' ? '#3b82f6' : '#ef4444';
+
+      content.innerHTML = `
+        <h2 class="detail__name">${site.name}</h2>
+        <p class="detail__meaning">"${site.meaning}"${site.alternativeMeaning ? ' / "' + site.alternativeMeaning + '"' : ''}</p>
+
+        <div class="detail__badges">
+          <span class="detail__badge" style="background:${territoryColor}20;color:${territoryColor}">${site.territory}</span>
+          <span class="detail__badge" style="background:${typeInfo.color}20;color:${typeInfo.color}">${site.icon} ${typeInfo.label || site.type}</span>
+        </div>
+
+        <div class="detail__section">
+          <div class="detail__section-title">Modern Location</div>
+          <div class="detail__section-text">${site.modernLocation}</div>
+        </div>
+
+        <div class="detail__section">
+          <div class="detail__section-title">Historical Significance</div>
+          <div class="detail__section-text">${site.significance}</div>
+        </div>
+
+        <div class="detail__section">
+          <div class="detail__section-title">Coordinates</div>
+          <div class="detail__coordinates">${site.coordinates.lat.toFixed(4)}°N, ${Math.abs(site.coordinates.lng).toFixed(4)}°W</div>
+        </div>
+      `;
+
+      panel.hidden = false;
+    }
+
+    // Close detail panel
+    function closeDetail() {
+      document.getElementById('detail-panel').hidden = true;
     }
 
     async function initMap() {
@@ -911,6 +1354,36 @@
       document.getElementById('layer-panel-toggle').addEventListener('click', () => {
         document.getElementById('layer-panel').classList.toggle('collapsed');
       });
+
+      // ── Initialize sidebar ─────────────────────────────────────────
+      renderStats();
+      renderSettlementList();
+
+      // Sidebar toggle
+      document.getElementById('sidebar-toggle').addEventListener('click', () => {
+        const sidebar = document.getElementById('sidebar');
+        const icon = document.getElementById('sidebar-toggle-icon');
+        sidebar.classList.toggle('sidebar--collapsed');
+        icon.innerHTML = sidebar.classList.contains('sidebar--collapsed') ? '&#9776;' : '&times;';
+      });
+
+      // Search
+      document.getElementById('search').addEventListener('input', (e) => {
+        renderSettlementList(e.target.value);
+      });
+
+      // Territory filter
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentTerritory = btn.dataset.territory;
+          renderSettlementList(document.getElementById('search').value);
+        });
+      });
+
+      // Detail close
+      document.getElementById('detail-close').addEventListener('click', closeDetail);
     }
   </script>
   <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker&v=weekly"></script>

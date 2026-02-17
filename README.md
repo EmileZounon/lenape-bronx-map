@@ -27,6 +27,25 @@ Then open `index.html` and replace:
 - `YOUR_API_KEY` with your API key
 - `YOUR_MAP_ID` with your Map ID
 
+## What Has Been Built
+
+### Phase 1: HTML Skeleton & Data Constants (Task 1-2)
+- Full HTML skeleton with dark-themed CSS variables and Google Maps API loading
+- All data constants: SETTLEMENTS (12 sites), TRAILS (3 routes), BRONX_RIVER, TERRITORY_POLYGONS, LANDMARKS, ECOLOGICAL_ZONES, NEIGHBORING_TERRITORIES, SETTLEMENT_TYPES, TIMELINE, STATISTICS
+- Basic `initMap()` function creating the map
+
+### Phase 2: All 7 Map Layers & Layer Toggle Panel (Tasks 3-6)
+- **Settlement Markers** (12 custom HTML markers with emoji icons, territory-colored borders, pulse animation for highlighted sites)
+- **Territory Polygons** (Weckquaesgeek in blue, Siwanoy in red, semi-transparent fill)
+- **Bronx River** (dashed cyan polyline with InfoWindow on click)
+- **Trail Routes** (purple polylines for Wickquasgeck Trail and Shore Path; wave marker for The Wading Place) -- default OFF
+- **Landmarks** (The Grey Mare boulder, Treaty Oak) -- default OFF
+- **Ecological Zones** (6 zones: salt marshes, ridges, tidal inlets, birch bark country, sedge plains, hunting grounds) -- default OFF
+- **Neighboring Territories** (Wappinger, Sintsink, Canarsee, Rockaway) -- default OFF
+- **Layer Toggle Panel** (fixed bottom-right panel with checkboxes for all 7 layers, color swatches, collapse/expand button)
+- Shared InfoWindow for all clickable features
+- `showSettlementDetail()` stub for future detail panel
+
 ## Local Development
 
 ```bash

@@ -711,7 +711,57 @@
     }
 
     /* Mobile Responsive */
+    /* Mobile bottom sheet */
+    .mobile-detail {
+      display: none;
+    }
+    .mobile-detail[hidden] {
+      display: none !important;
+    }
+
     @media (max-width: 768px) {
+      .mobile-detail {
+        position: fixed;
+        bottom: 72px;
+        left: 0;
+        right: 0;
+        max-height: 55vh;
+        background: var(--surface);
+        border-top: 2px solid var(--border);
+        border-radius: 16px 16px 0 0;
+        z-index: 300;
+        overflow-y: auto;
+        padding: 12px 20px 24px;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.4);
+        transform: translateY(100%);
+        transition: transform 0.3s ease;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+      .mobile-detail:not([hidden]) {
+        display: block;
+        transform: translateY(0);
+      }
+      .mobile-detail__handle {
+        width: 40px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin: 0 auto 12px;
+      }
+      .mobile-detail__close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+        z-index: 10;
+      }
+      /* Hide the desktop detail panel on mobile */
+      .sidebar__detail {
+        display: none !important;
+      }
       .sidebar {
         width: 100%;
         max-width: 100vw;
@@ -799,14 +849,21 @@
 
       <div id="settlement-list" class="sidebar__list"></div>
 
-      <div id="detail-panel" class="sidebar__detail" hidden>
-        <button id="detail-close" class="detail__close" aria-label="Close detail">&times;</button>
-        <div id="detail-content"></div>
+      <div id="detail-panel-desktop" class="sidebar__detail" hidden>
+        <button class="detail__close detail__close--back" aria-label="Close detail">&times;</button>
+        <div class="detail-content"></div>
       </div>
     </div>
   </aside>
 
   <div id="map"></div>
+
+  <!-- Mobile bottom sheet for settlement details -->
+  <div id="detail-panel-mobile" class="mobile-detail" hidden>
+    <div class="mobile-detail__handle"></div>
+    <button class="detail__close mobile-detail__close" aria-label="Close detail">&times;</button>
+    <div class="detail-content"></div>
+  </div>
 
   <div id="layer-panel" class="layer-panel">
     <div class="layer-panel__header">
@@ -1470,6 +1527,12 @@
     function selectSettlement(id) {
       const site = SETTLEMENTS.find(s => s.id === id);
       if (site) {
+        // On mobile, collapse sidebar first so bottom sheet shows over map
+        if (isMobile()) {
+          const sidebar = document.getElementById('sidebar');
+          sidebar.classList.add('sidebar--collapsed');
+          document.getElementById('sidebar-toggle-icon').innerHTML = '&#9776;';
+        }
         showSettlementDetail(site);
         // Fly to settlement
         map.panTo(site.coordinates);
@@ -1477,20 +1540,17 @@
       }
     }
 
+    // Check if mobile
+    function isMobile() {
+      return window.innerWidth <= 768;
+    }
+
     // Show settlement detail
     function showSettlementDetail(site) {
-      const panel = document.getElementById('detail-panel');
-      const content = document.getElementById('detail-content');
-      const sidebar = document.getElementById('sidebar');
-
-      // Open sidebar if collapsed
-      sidebar.classList.remove('sidebar--collapsed');
-      document.getElementById('sidebar-toggle-icon').innerHTML = '&times;';
-
       const typeInfo = SETTLEMENT_TYPES[site.type] || {};
       const territoryColor = site.territory === 'Weckquaesgeek' ? '#3b82f6' : '#ef4444';
 
-      content.innerHTML = `
+      const html = `
         <h2 class="detail__name">${site.name}</h2>
         <p class="detail__meaning">"${site.meaning}"${site.alternativeMeaning ? ' / "' + site.alternativeMeaning + '"' : ''}</p>
 
@@ -1515,12 +1575,24 @@
         </div>
       `;
 
-      panel.hidden = false;
+      if (isMobile()) {
+        const mobilePanel = document.getElementById('detail-panel-mobile');
+        mobilePanel.querySelector('.detail-content').innerHTML = html;
+        mobilePanel.hidden = false;
+      } else {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.remove('sidebar--collapsed');
+        document.getElementById('sidebar-toggle-icon').innerHTML = '&times;';
+        const desktopPanel = document.getElementById('detail-panel-desktop');
+        desktopPanel.querySelector('.detail-content').innerHTML = html;
+        desktopPanel.hidden = false;
+      }
     }
 
     // Close detail panel
     function closeDetail() {
-      document.getElementById('detail-panel').hidden = true;
+      document.getElementById('detail-panel-desktop').hidden = true;
+      document.getElementById('detail-panel-mobile').hidden = true;
     }
 
     async function initMap() {
@@ -1798,7 +1870,9 @@
       });
 
       // Detail close
-      document.getElementById('detail-close').addEventListener('click', closeDetail);
+      document.querySelectorAll('.detail__close--back, .mobile-detail__close').forEach(btn => {
+        btn.addEventListener('click', closeDetail);
+      });
 
       // Timeline
       renderTimeline();

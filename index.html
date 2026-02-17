@@ -41,10 +41,133 @@
       width: 100%;
       height: 100vh;
     }
+
+    /* ── Settlement markers ─────────────────────────────────────────── */
+    .marker {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: transform 0.2s;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+    .marker:hover {
+      transform: scale(1.2);
+      z-index: 10;
+    }
+    .marker--highlight {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4); }
+      50% { box-shadow: 0 0 0 12px rgba(34, 211, 238, 0); }
+    }
+
+    /* ── Landmark markers ───────────────────────────────────────────── */
+    .marker-landmark {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 2px solid #f59e0b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    .marker-landmark:hover {
+      transform: scale(1.15);
+    }
+
+    /* ── Layer toggle panel ─────────────────────────────────────────── */
+    .layer-panel {
+      position: fixed;
+      bottom: 100px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      font-size: 13px;
+      min-width: 200px;
+      overflow: hidden;
+    }
+    .layer-panel__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .layer-panel__title {
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .layer-panel__collapse {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .layer-panel__body {
+      padding: 8px 14px 12px;
+    }
+    .layer-panel.collapsed .layer-panel__body {
+      display: none;
+    }
+    .layer-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      cursor: pointer;
+      color: var(--text-secondary);
+      transition: color 0.15s;
+    }
+    .layer-option:hover {
+      color: var(--text);
+    }
+    .layer-option input {
+      accent-color: var(--accent);
+    }
+    .layer-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
   <div id="map"></div>
+
+  <div id="layer-panel" class="layer-panel">
+    <div class="layer-panel__header">
+      <span class="layer-panel__title">Layers</span>
+      <button id="layer-panel-toggle" class="layer-panel__collapse" aria-label="Toggle layer panel">&lsaquo;</button>
+    </div>
+    <div class="layer-panel__body">
+      <label class="layer-option"><input type="checkbox" data-layer="settlements" checked><span class="layer-swatch" style="background:#f97316"></span> Settlements</label>
+      <label class="layer-option"><input type="checkbox" data-layer="territories" checked><span class="layer-swatch" style="background:linear-gradient(135deg,#3b82f6,#ef4444)"></span> Territories</label>
+      <label class="layer-option"><input type="checkbox" data-layer="river" checked><span class="layer-swatch" style="background:#22d3ee"></span> Bronx River</label>
+      <label class="layer-option"><input type="checkbox" data-layer="trails"><span class="layer-swatch" style="background:#a855f7"></span> Trail Routes</label>
+      <label class="layer-option"><input type="checkbox" data-layer="landmarks"><span class="layer-swatch" style="background:#f59e0b"></span> Landmarks</label>
+      <label class="layer-option"><input type="checkbox" data-layer="ecoZones"><span class="layer-swatch" style="background:#059669"></span> Ecological Zones</label>
+      <label class="layer-option"><input type="checkbox" data-layer="neighbors"><span class="layer-swatch" style="background:#7c3aed"></span> Neighboring Peoples</label>
+    </div>
+  </div>
 
   <script>
     // ── Settlement type definitions ──────────────────────────────────────
@@ -535,10 +658,18 @@
       { value: '9,160', label: 'Acres (Pell Treaty)' }
     ];
 
+    // ── Module-level references ──────────────────────────────────────
+    let map, settlementMarkers = [], infoWindow, layers;
+
+    function showSettlementDetail(site) {
+      console.log('Selected:', site.name);
+    }
+
     async function initMap() {
       const { Map } = await google.maps.importLibrary('maps');
+      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
 
-      const map = new Map(document.getElementById('map'), {
+      map = new Map(document.getElementById('map'), {
         center: { lat: 40.8448, lng: -73.8648 },
         zoom: 12,
         minZoom: 10,
@@ -551,6 +682,234 @@
         zoomControlOptions: {
           position: google.maps.ControlPosition.RIGHT_CENTER
         }
+      });
+
+      infoWindow = new google.maps.InfoWindow();
+
+      // ── Part A: Settlement Markers ───────────────────────────────────
+      settlementMarkers = [];
+      SETTLEMENTS.forEach(site => {
+        const markerEl = document.createElement('div');
+        markerEl.className = 'marker' + (site.highlight ? ' marker--highlight' : '');
+        markerEl.style.borderColor = site.territory === 'Weckquaesgeek' ? '#3b82f6' : '#ef4444';
+        markerEl.innerHTML = site.icon;
+        markerEl.setAttribute('aria-label', site.name + ' \u2014 ' + site.modernLocation);
+
+        const marker = new AdvancedMarkerElement({
+          map,
+          position: site.coordinates,
+          content: markerEl,
+          title: site.name + ' \u2014 ' + site.modernLocation
+        });
+
+        marker.addListener('click', () => showSettlementDetail(site));
+        settlementMarkers.push(marker);
+      });
+
+      // ── Part B: Territory Polygons ───────────────────────────────────
+      const weckPoly = new google.maps.Polygon({
+        paths: TERRITORY_POLYGONS.weckquaesgeek,
+        strokeColor: '#3b82f6',
+        strokeOpacity: 0.6,
+        strokeWeight: 2,
+        fillColor: '#3b82f6',
+        fillOpacity: 0.08,
+        map
+      });
+
+      const siwanoyPoly = new google.maps.Polygon({
+        paths: TERRITORY_POLYGONS.siwanoy,
+        strokeColor: '#ef4444',
+        strokeOpacity: 0.6,
+        strokeWeight: 2,
+        fillColor: '#ef4444',
+        fillOpacity: 0.08,
+        map
+      });
+
+      // ── Bronx River (dashed polyline) ────────────────────────────────
+      const bronxRiverLine = new google.maps.Polyline({
+        path: BRONX_RIVER.path,
+        strokeOpacity: 0,
+        icons: [{
+          icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: '#22d3ee', scale: 3 },
+          offset: '0',
+          repeat: '15px'
+        }],
+        map
+      });
+
+      bronxRiverLine.addListener('click', (e) => {
+        infoWindow.setContent(`
+          <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+            <strong>Aquahung (Bronx River)</strong><br>
+            <span style="color:#64748b;font-size:13px;">
+              Territorial boundary between the Siwanoy (east) and Weckquaesgeek (west).
+            </span>
+          </div>
+        `);
+        infoWindow.setPosition(e.latLng);
+        infoWindow.open(map);
+      });
+
+      // ── Part C: Trails (default OFF) ─────────────────────────────────
+      const trailLines = [];
+      TRAILS.forEach(trail => {
+        if (trail.path && trail.path.length > 1) {
+          const line = new google.maps.Polyline({
+            path: trail.path,
+            strokeColor: '#a855f7',
+            strokeOpacity: 0.7,
+            strokeWeight: 3,
+            map: null
+          });
+          line.addListener('click', (e) => {
+            infoWindow.setContent(`
+              <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+                <strong>${trail.name}</strong><br>
+                <span style="color:#64748b;font-size:12px;">Modern: ${trail.modernEquivalent}</span><br>
+                <span style="font-size:13px;">${trail.description}</span>
+              </div>
+            `);
+            infoWindow.setPosition(e.latLng);
+            infoWindow.open(map);
+          });
+          trailLines.push(line);
+        }
+        if (trail.coordinates) {
+          const el = document.createElement('div');
+          el.className = 'marker-landmark';
+          el.innerHTML = '\u{1F30A}';
+          el.title = trail.name;
+          const m = new AdvancedMarkerElement({
+            position: trail.coordinates,
+            content: el,
+            title: trail.name,
+            map: null
+          });
+          m.addListener('click', () => {
+            infoWindow.setContent(`
+              <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+                <strong>${trail.name}</strong><br>
+                <span style="color:#64748b;font-size:12px;">Modern: ${trail.modernEquivalent}</span><br>
+                <span style="font-size:13px;">${trail.description}</span>
+              </div>
+            `);
+            infoWindow.setPosition(trail.coordinates);
+            infoWindow.open(map);
+          });
+          trailLines.push(m);
+        }
+      });
+
+      // ── Landmarks (default OFF) ──────────────────────────────────────
+      const landmarkMarkers = [];
+      LANDMARKS.forEach(lm => {
+        const el = document.createElement('div');
+        el.className = 'marker-landmark';
+        el.innerHTML = lm.icon;
+        el.title = lm.name;
+        const m = new AdvancedMarkerElement({
+          position: lm.coordinates,
+          content: el,
+          title: lm.name,
+          map: null
+        });
+        m.addListener('click', () => {
+          infoWindow.setContent(`
+            <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+              <strong>${lm.name}</strong><br>
+              <span style="color:#64748b;font-size:12px;">${lm.type}</span><br>
+              <span style="font-size:13px;">${lm.description}</span>
+            </div>
+          `);
+          infoWindow.setPosition(lm.coordinates);
+          infoWindow.open(map);
+        });
+        landmarkMarkers.push(m);
+      });
+
+      // ── Ecological Zones (default OFF) ───────────────────────────────
+      const ecoZonePolygons = [];
+      ECOLOGICAL_ZONES.forEach(zone => {
+        const poly = new google.maps.Polygon({
+          paths: zone.path,
+          strokeColor: zone.color,
+          strokeOpacity: 0.5,
+          strokeWeight: 1,
+          fillColor: zone.color,
+          fillOpacity: 0.12,
+          map: null
+        });
+        poly.addListener('click', (e) => {
+          infoWindow.setContent(`
+            <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+              <strong>${zone.name}</strong><br>
+              <span style="font-size:13px;">${zone.description}</span>
+            </div>
+          `);
+          infoWindow.setPosition(e.latLng);
+          infoWindow.open(map);
+        });
+        ecoZonePolygons.push(poly);
+      });
+
+      // ── Neighboring Territories (default OFF) ────────────────────────
+      const neighborPolygons = [];
+      NEIGHBORING_TERRITORIES.forEach(neighbor => {
+        const poly = new google.maps.Polygon({
+          paths: neighbor.path,
+          strokeColor: neighbor.color,
+          strokeOpacity: 0.4,
+          strokeWeight: 2,
+          fillColor: neighbor.color,
+          fillOpacity: 0.05,
+          strokeDashArray: [8, 4],
+          map: null
+        });
+        poly.addListener('click', (e) => {
+          infoWindow.setContent(`
+            <div style="color:#0f172a;font-family:Inter,sans-serif;padding:4px;max-width:280px;">
+              <strong>${neighbor.name}</strong><br>
+              <span style="font-size:13px;">${neighbor.relation}</span>
+            </div>
+          `);
+          infoWindow.setPosition(e.latLng);
+          infoWindow.open(map);
+        });
+        neighborPolygons.push(poly);
+      });
+
+      // ── Layers registry ──────────────────────────────────────────────
+      layers = {
+        settlements: { items: settlementMarkers, type: 'marker' },
+        territories: { items: [weckPoly, siwanoyPoly], type: 'shape' },
+        river: { items: [bronxRiverLine], type: 'shape' },
+        trails: { items: trailLines, type: 'mixed' },
+        landmarks: { items: landmarkMarkers, type: 'marker' },
+        ecoZones: { items: ecoZonePolygons, type: 'shape' },
+        neighbors: { items: neighborPolygons, type: 'shape' }
+      };
+
+      // ── Layer toggle logic ───────────────────────────────────────────
+      document.querySelectorAll('#layer-panel input[type=checkbox]').forEach(cb => {
+        cb.addEventListener('change', () => {
+          const layerKey = cb.dataset.layer;
+          const layer = layers[layerKey];
+          const targetMap = cb.checked ? map : null;
+          layer.items.forEach(item => {
+            if (item instanceof AdvancedMarkerElement) {
+              item.map = targetMap;
+            } else if (item.setMap) {
+              item.setMap(targetMap);
+            }
+          });
+        });
+      });
+
+      // ── Layer panel collapse/expand ──────────────────────────────────
+      document.getElementById('layer-panel-toggle').addEventListener('click', () => {
+        document.getElementById('layer-panel').classList.toggle('collapsed');
       });
     }
   </script>

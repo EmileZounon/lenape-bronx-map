@@ -44,7 +44,26 @@ Then open `index.html` and replace:
 - **Neighboring Territories** (Wappinger, Sintsink, Canarsee, Rockaway) -- default OFF
 - **Layer Toggle Panel** (fixed bottom-right panel with checkboxes for all 7 layers, color swatches, collapse/expand button)
 - Shared InfoWindow for all clickable features
-- `showSettlementDetail()` stub for future detail panel
+
+### Phase 3: Sidebar, Timeline & Legend (Tasks 7-9)
+- **Collapsible Sidebar** (380px left panel with slide toggle)
+  - Title and subtitle header
+  - Search input (filters settlements by name, location, or meaning)
+  - Territory filter buttons (All / Weckquaesgeek / Siwanoy) with color-coded active states
+  - Stats grid (6 cards: Documented Sites, Years of Habitation, Siwanoy Pre-Contact, Last Settlement, Lodges at Snakapins, Acres Pell Treaty)
+  - Settlement list (clickable items that fly to the marker and show detail)
+  - Detail panel overlay (name, meaning, badges, modern location, historical significance, coordinates)
+  - Sidebar collapse/expand with hamburger/close icon toggle
+- **Interactive Timeline Bar** (fixed 72px bar at page bottom)
+  - Horizontally scrollable track with 10 historical events (~4000 BCE to 2015)
+  - Each event shows date, dot indicator, and label
+  - Clicking an event flies the map to the related settlement and shows its detail
+  - Keyboard navigation with ArrowLeft/ArrowRight keys
+  - Active state with cyan glow on selected event dot
+- **Legend** (fixed top-right overlay)
+  - Territory colors (Weckquaesgeek blue, Siwanoy red, Aquahung cyan)
+  - Settlement type icons (8 types with emoji markers)
+- **Layout adjustments**: Layer panel repositioned to sit above the 72px timeline bar
 
 ## Local Development
 

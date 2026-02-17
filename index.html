@@ -91,7 +91,7 @@
     /* ── Layer toggle panel ─────────────────────────────────────────── */
     .layer-panel {
       position: fixed;
-      bottom: 100px;
+      bottom: 88px;
       right: 16px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -455,6 +455,167 @@
       font-size: 12px;
       color: var(--text-muted);
     }
+
+    /* Timeline */
+    .timeline {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 150;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .timeline__track {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      min-width: max-content;
+      padding: 0 40px;
+      gap: 0;
+      position: relative;
+    }
+
+    .timeline__event {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 8px 20px;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: all 0.15s;
+    }
+
+    .timeline__event:hover {
+      background: rgba(34, 211, 238, 0.05);
+    }
+
+    .timeline__event.active {
+      background: rgba(34, 211, 238, 0.1);
+    }
+
+    .timeline__event::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 20%;
+      height: 60%;
+      width: 1px;
+      background: var(--border);
+    }
+
+    .timeline__event:last-child::after {
+      display: none;
+    }
+
+    .timeline__date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .timeline__label {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+
+    .timeline__event:hover .timeline__label {
+      color: var(--text);
+    }
+
+    .timeline__event.active .timeline__label {
+      color: var(--text);
+    }
+
+    .timeline__dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border);
+      margin: 4px 0;
+      transition: all 0.15s;
+    }
+
+    .timeline__event:hover .timeline__dot {
+      background: var(--accent);
+      transform: scale(1.5);
+    }
+
+    .timeline__event.active .timeline__dot {
+      background: var(--accent);
+      transform: scale(1.5);
+      box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+    }
+
+    /* Legend */
+    .legend {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      z-index: 100;
+      font-size: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      max-height: 50vh;
+      overflow-y: auto;
+    }
+
+    .legend__title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .legend__section {
+      margin-bottom: 10px;
+    }
+
+    .legend__section:last-child {
+      margin-bottom: 0;
+    }
+
+    .legend__subtitle {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .legend__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 2px 0;
+      color: var(--text-secondary);
+    }
+
+    .legend__color {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+
+    .legend__icon {
+      width: 14px;
+      text-align: center;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -501,6 +662,31 @@
       <label class="layer-option"><input type="checkbox" data-layer="ecoZones"><span class="layer-swatch" style="background:#059669"></span> Ecological Zones</label>
       <label class="layer-option"><input type="checkbox" data-layer="neighbors"><span class="layer-swatch" style="background:#7c3aed"></span> Neighboring Peoples</label>
     </div>
+  </div>
+
+  <div id="legend" class="legend">
+    <div class="legend__title">Legend</div>
+    <div class="legend__section">
+      <div class="legend__subtitle">Territories</div>
+      <div class="legend__item"><span class="legend__color" style="background:#3b82f6"></span> Weckquaesgeek (West)</div>
+      <div class="legend__item"><span class="legend__color" style="background:#ef4444"></span> Siwanoy (East)</div>
+      <div class="legend__item"><span class="legend__color" style="background:#22d3ee"></span> Aquahung / Bronx River</div>
+    </div>
+    <div class="legend__section">
+      <div class="legend__subtitle">Settlement Types</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F3F0;</span> Fortified Stronghold</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F3D8;</span> Major Village</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F48E;</span> Trade / Wampum Center</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F33E;</span> Agricultural Site</div>
+      <div class="legend__item"><span class="legend__icon">&#x26B1;</span> Ceremonial / Burial</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F41A;</span> Seasonal Camp</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F4DC;</span> Historical Site</div>
+      <div class="legend__item"><span class="legend__icon">&#x1F50D;</span> Archaeological Discovery</div>
+    </div>
+  </div>
+
+  <div id="timeline" class="timeline">
+    <div class="timeline__track" id="timeline-track"></div>
   </div>
 
   <script>
@@ -997,6 +1183,37 @@
 
     // Current filter state
     let currentTerritory = 'all';
+    let activeTimelineEvent = null;
+
+    function renderTimeline() {
+      const track = document.getElementById('timeline-track');
+      track.innerHTML = TIMELINE.map((event, i) => `
+        <div class="timeline__event" data-index="${i}" onclick="selectTimelineEvent(${i})" tabindex="0" role="button" aria-label="${event.date}: ${event.event}">
+          <span class="timeline__date">${event.date}</span>
+          <span class="timeline__dot"></span>
+          <span class="timeline__label">${event.event}</span>
+        </div>
+      `).join('');
+    }
+
+    function selectTimelineEvent(index) {
+      const event = TIMELINE[index];
+
+      // Update active state
+      document.querySelectorAll('.timeline__event').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.timeline__event')[index]?.classList.add('active');
+      activeTimelineEvent = index;
+
+      // If event has a related settlement, fly to it and show detail
+      if (event.relatedSettlement) {
+        const site = SETTLEMENTS.find(s => s.id === event.relatedSettlement);
+        if (site) {
+          map.panTo(site.coordinates);
+          map.setZoom(14);
+          showSettlementDetail(site);
+        }
+      }
+    }
 
     // Render stats
     function renderStats() {
@@ -1384,6 +1601,20 @@
 
       // Detail close
       document.getElementById('detail-close').addEventListener('click', closeDetail);
+
+      // Timeline
+      renderTimeline();
+
+      // Timeline keyboard navigation
+      document.getElementById('timeline').addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const direction = e.key === 'ArrowRight' ? 1 : -1;
+          const next = Math.max(0, Math.min(TIMELINE.length - 1, (activeTimelineEvent ?? -1) + direction));
+          selectTimelineEvent(next);
+          document.querySelectorAll('.timeline__event')[next]?.focus();
+        }
+      });
     }
   </script>
   <script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker&v=weekly"></script>

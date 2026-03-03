@@ -89,6 +89,29 @@
       transform: scale(1.15);
     }
 
+    /* ── Student submission markers ─────────────────────────────────────── */
+    .marker-student {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 2px dashed #10b981;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s;
+    }
+    .marker-student:hover {
+      transform: scale(1.2);
+    }
+    .marker-student--pending {
+      border-color: #f59e0b;
+      opacity: 0.8;
+    }
+
     /* ── Layer toggle panel ─────────────────────────────────────────── */
     .layer-panel {
       position: fixed;
@@ -641,6 +664,141 @@
       color: var(--text);
       border-color: var(--text-muted);
     }
+
+    /* ── Add Site button ─────────────────────────────────────────────────── */
+    .add-site-btn {
+      position: fixed;
+      bottom: 80px;
+      left: 100px;
+      background: #10b981;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 16px;
+      cursor: pointer;
+      z-index: 160;
+      transition: background 0.15s;
+    }
+    .add-site-btn:hover {
+      background: #059669;
+    }
+    .add-site-btn--active {
+      background: #f59e0b;
+    }
+    .add-site-btn--active:hover {
+      background: #d97706;
+    }
+
+    /* ── Site proposal modal ─────────────────────────────────────────────── */
+    .site-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .site-modal[hidden] {
+      display: none;
+    }
+    .site-modal__content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      max-width: 480px;
+      width: 100%;
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    .site-modal__title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .site-modal__subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .site-modal__form {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .site-modal__form input,
+    .site-modal__form textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      resize: vertical;
+    }
+    .site-modal__form input:focus,
+    .site-modal__form textarea:focus {
+      border-color: var(--accent);
+    }
+    .site-modal__form input::placeholder,
+    .site-modal__form textarea::placeholder {
+      color: var(--text-muted);
+    }
+    .site-modal__coords {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .site-modal__actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .site-modal__submit {
+      flex: 1;
+      padding: 10px;
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .site-modal__submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .site-modal__cancel {
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .site-modal__cancel:hover {
+      border-color: var(--text-muted);
+      color: var(--text);
+    }
+    body.pin-drop-mode #map {
+      cursor: crosshair !important;
+    }
     .sources-modal {
       position: fixed;
       inset: 0;
@@ -713,6 +871,227 @@
       color: var(--text-muted);
       margin-top: 16px;
       font-style: italic;
+    }
+
+    /* ── Annotation form & display ───────────────────────────────────────── */
+    .annotations-section {
+      margin-top: 20px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+    .annotations-section__title {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+    .annotation-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .annotation-item__note {
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 4px;
+    }
+    .annotation-item__meta {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .annotation-item--pending {
+      border-color: #f59e0b44;
+      opacity: 0.8;
+    }
+    .add-note-btn {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      background: transparent;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-align: center;
+    }
+    .add-note-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .annotation-form {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .annotation-form input,
+    .annotation-form textarea {
+      width: 100%;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      resize: vertical;
+    }
+    .annotation-form input:focus,
+    .annotation-form textarea:focus {
+      border-color: var(--accent);
+    }
+    .annotation-form input::placeholder,
+    .annotation-form textarea::placeholder {
+      color: var(--text-muted);
+    }
+    .annotation-form__submit {
+      padding: 10px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .annotation-form__submit:hover {
+      opacity: 0.85;
+    }
+    .annotation-form__submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ── Photo upload & media display ────────────────────────────────────── */
+    .photo-upload-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 13px;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .photo-upload-label:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .photo-previews {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 2px;
+    }
+    .photo-preview {
+      position: relative;
+      width: 64px;
+      height: 64px;
+    }
+    .photo-preview img {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .photo-preview__remove {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 18px;
+      height: 18px;
+      background: #ef4444;
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .photo-count {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .media-grid img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .media-grid img:hover {
+      opacity: 0.85;
+    }
+    .video-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--accent);
+      font-size: 13px;
+      text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .video-link:hover {
+      border-color: var(--accent);
+    }
+    /* Lightbox */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: zoom-out;
+    }
+    .lightbox[hidden] { display: none; }
+    .lightbox img {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+    .lightbox__close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #fff;
+      font-size: 32px;
+      cursor: pointer;
+      line-height: 1;
     }
 
     /* Mobile Responsive */
@@ -904,6 +1283,7 @@
       <label class="layer-option"><input type="checkbox" data-layer="landmarks"><span class="layer-swatch" style="background:#f59e0b"></span> Landmarks</label>
       <label class="layer-option"><input type="checkbox" data-layer="ecoZones"><span class="layer-swatch" style="background:#059669"></span> Ecological Zones</label>
       <label class="layer-option"><input type="checkbox" data-layer="neighbors"><span class="layer-swatch" style="background:#7c3aed"></span> Neighboring Peoples</label>
+      <label class="layer-option"><input type="checkbox" data-layer="studentSubmissions" checked><span class="layer-swatch" style="background:#10b981;border-radius:50%;border:2px dashed #10b981;box-sizing:border-box"></span> Student Sites</label>
     </div>
   </div>
 
@@ -926,8 +1306,22 @@
       <div class="legend__item"><span class="legend__icon">&#x1F4DC;</span> Historical Site</div>
       <div class="legend__item"><span class="legend__icon">&#x1F50D;</span> Archaeological Discovery</div>
     </div>
+    <div class="legend__section">
+      <div class="legend__subtitle">Student Submissions</div>
+      <div class="legend__item">
+        <span style="width:14px;height:14px;border-radius:50%;border:2px dashed #10b981;display:inline-block;flex-shrink:0"></span>
+        Approved student site
+      </div>
+      <div class="legend__item">
+        <span style="width:14px;height:14px;border-radius:50%;border:2px dashed #f59e0b;display:inline-block;flex-shrink:0"></span>
+        Pending approval
+      </div>
+    </div>
   </div>
 
+  <button id="add-site-btn" class="add-site-btn" aria-label="Propose a new historical site" title="Add a new site">
+    + Add Site
+  </button>
   <button id="sources-btn" class="sources-btn" aria-label="View sources and references">Sources</button>
   <div id="sources-modal" class="sources-modal" hidden>
     <div class="sources-modal__content">
@@ -962,6 +1356,41 @@
           </ul>
         </div>
         <p class="sources-note">Historical data compiled from public domain sources. Map visualization code is MIT licensed.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox for full-size photo view -->
+  <div id="lightbox" class="lightbox" hidden onclick="closeLightbox()">
+    <button class="lightbox__close" onclick="closeLightbox()">&times;</button>
+    <img id="lightbox-img" src="" alt="Full size photo">
+  </div>
+
+  <!-- Site proposal modal -->
+  <div id="site-modal" class="site-modal" hidden>
+    <div class="site-modal__content">
+      <div class="site-modal__title">Propose a New Site</div>
+      <div class="site-modal__subtitle" id="site-modal-subtitle">Fill in the details for this location.</div>
+      <div class="site-modal__form">
+        <div class="site-modal__coords" id="site-modal-coords">📍 No location selected</div>
+        <input id="sm-name" type="text" placeholder="Site name *" maxlength="100">
+        <textarea id="sm-description" placeholder="Description / historical significance *" rows="3" maxlength="1000"></textarea>
+        <input id="sm-source" type="url" placeholder="Source URL (optional)">
+        <input id="sm-video" type="url" placeholder="Video link (YouTube/Google Drive, optional)">
+        <label class="photo-upload-label" onclick="document.getElementById('sm-photos').click()">
+          📷 Add photos (up to 5, max 15 MB each)
+        </label>
+        <input id="sm-photos" type="file" accept="image/*" multiple style="display:none"
+          onchange="handlePhotoSelect('sm-photos', 'sm-previews')">
+        <div id="sm-previews" class="photo-previews"></div>
+        <span id="sm-count" class="photo-count"></span>
+        <input id="sm-student" type="text" placeholder="Your name *" maxlength="80">
+        <input id="sm-class" type="text" placeholder="Class name *" maxlength="80">
+        <input id="sm-school" type="text" placeholder="School *" maxlength="80">
+        <div class="site-modal__actions">
+          <button class="site-modal__cancel" onclick="closeSiteModal()">Cancel</button>
+          <button class="site-modal__submit" id="site-modal-submit" onclick="handleSubmitSite()">Submit Site</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1460,7 +1889,7 @@
     ];
 
     // ── Module-level references ──────────────────────────────────────
-    let map, settlementMarkers = [], infoWindow, layers;
+    let map, settlementMarkers = [], studentMarkers = [], infoWindow, layers;
 
     // Current filter state
     let currentTerritory = 'all';
@@ -1599,6 +2028,115 @@
           <div class="detail__section-title">Coordinates</div>
           <div class="detail__coordinates">${site.coordinates.lat.toFixed(4)}°N, ${Math.abs(site.coordinates.lng).toFixed(4)}°W</div>
         </div>
+
+        <div class="annotations-section" id="annotations-${site.id}">
+          <div class="annotations-section__title">Student Notes</div>
+          <div id="annotation-list-${site.id}">
+            <div style="color:var(--text-muted);font-size:12px;">Loading notes...</div>
+          </div>
+          <button class="add-note-btn" onclick="toggleAnnotationForm(${site.id})">+ Add a Note</button>
+          <div id="annotation-form-${site.id}" class="annotation-form" style="display:none">
+            <input id="af-name-${site.id}" type="text" placeholder="Your name *" maxlength="80">
+            <input id="af-class-${site.id}" type="text" placeholder="Class name *" maxlength="80">
+            <input id="af-school-${site.id}" type="text" placeholder="School *" maxlength="80">
+            <textarea id="af-note-${site.id}" placeholder="Your note or research finding *" rows="3" maxlength="1000"></textarea>
+            <input id="af-source-${site.id}" type="url" placeholder="Source URL (optional)">
+            <input id="af-video-${site.id}" type="url" placeholder="Video link (YouTube/Google Drive, optional)">
+            <label class="photo-upload-label" onclick="document.getElementById('af-photos-${site.id}').click()">
+              📷 Add photos (up to 5, max 15 MB each)
+            </label>
+            <input id="af-photos-${site.id}" type="file" accept="image/*" multiple style="display:none"
+              onchange="handlePhotoSelect('af-photos-${site.id}', 'af-previews-${site.id}')">
+            <div id="af-previews-${site.id}" class="photo-previews"></div>
+            <span id="af-count-${site.id}" class="photo-count"></span>
+            <button class="annotation-form__submit" onclick="handleSubmitAnnotation(${site.id})">Submit Note</button>
+          </div>
+        </div>
+      `;
+
+      if (isMobile()) {
+        const mobilePanel = document.getElementById('detail-panel-mobile');
+        mobilePanel.querySelector('.detail-content').innerHTML = html;
+        mobilePanel.hidden = false;
+      } else {
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.remove('sidebar--collapsed');
+        document.getElementById('sidebar-toggle-icon').innerHTML = '&times;';
+        const desktopPanel = document.getElementById('detail-panel-desktop');
+        desktopPanel.querySelector('.detail-content').innerHTML = html;
+        desktopPanel.hidden = false;
+      }
+      // Load annotations after panel is rendered
+      setTimeout(() => loadAndRenderAnnotations(site.id), 0);
+    }
+
+    // Close detail panel
+    function closeDetail() {
+      document.getElementById('detail-panel-desktop').hidden = true;
+      document.getElementById('detail-panel-mobile').hidden = true;
+    }
+
+    // Render student-submitted site proposals on the map
+    async function renderStudentSubmissions() {
+      studentMarkers.forEach(m => { m.map = null; });
+      studentMarkers = [];
+
+      const submissions = await loadSubmissions();
+      const { AdvancedMarkerElement } = await google.maps.importLibrary('marker');
+
+      submissions.forEach(sub => {
+        const el = document.createElement('div');
+        el.className = 'marker-student' + (sub.status === 'pending' ? ' marker-student--pending' : '');
+        el.innerHTML = '📍';
+        el.setAttribute('aria-label', sub.name + ' — student submission');
+
+        const marker = new AdvancedMarkerElement({
+          map,
+          position: { lat: sub.lat, lng: sub.lng },
+          content: el,
+          title: sub.name
+        });
+
+        marker.addListener('click', () => showStudentSubmissionDetail(sub));
+        studentMarkers.push(marker);
+      });
+    }
+
+    // Show detail panel for a student-submitted site
+    function showStudentSubmissionDetail(sub) {
+      const isPending = sub.status === 'pending';
+      const html = `
+        <h2 class="detail__name">${sub.name}</h2>
+        <p class="detail__meaning" style="color:${isPending ? '#f59e0b' : '#10b981'}">
+          ${isPending ? '⏳ Pending approval' : '✓ Student submission'}
+        </p>
+        <div class="detail__section">
+          <div class="detail__section-title">Description</div>
+          <div class="detail__section-text">${sub.description || 'No description provided.'}</div>
+        </div>
+        ${sub.sources && sub.sources.length ? `
+        <div class="detail__section">
+          <div class="detail__section-title">Source</div>
+          <div class="detail__section-text">
+            <a href="${sub.sources[0]}" target="_blank" rel="noopener" style="color:var(--accent)">${sub.sources[0]}</a>
+          </div>
+        </div>` : ''}
+        ${sub.photos && sub.photos.length ? `
+        <div class="detail__section">
+          <div class="detail__section-title">Photos</div>
+          <div class="media-grid">
+            ${sub.photos.map(url => `<img src="${url}" alt="Student photo" onclick="openLightbox('${url}')">`).join('')}
+          </div>
+        </div>` : ''}
+        ${sub.videoUrl ? `
+        <div class="detail__section">
+          <div class="detail__section-title">Video</div>
+          <a href="${sub.videoUrl}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>
+        </div>` : ''}
+        <div class="detail__section">
+          <div class="detail__section-title">Submitted by</div>
+          <div class="detail__section-text">${sub.studentName} — ${sub.className}, ${sub.school}</div>
+        </div>
       `;
 
       if (isMobile()) {
@@ -1615,10 +2153,237 @@
       }
     }
 
-    // Close detail panel
-    function closeDetail() {
-      document.getElementById('detail-panel-desktop').hidden = true;
-      document.getElementById('detail-panel-mobile').hidden = true;
+    // Load and render annotations for a settlement
+    async function loadAndRenderAnnotations(settlementId) {
+      const listEl = document.getElementById('annotation-list-' + settlementId);
+      if (!listEl) return;
+
+      const annotations = await loadAnnotations(settlementId);
+      if (annotations.length === 0) {
+        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:12px;">No notes yet. Be the first!</div>';
+        return;
+      }
+
+      listEl.innerHTML = annotations.map(a => `
+        <div class="annotation-item ${a.status === 'pending' ? 'annotation-item--pending' : ''}">
+          <div class="annotation-item__note">${a.note}</div>
+          ${a.photos && a.photos.length ? `
+            <div class="media-grid">
+              ${a.photos.map(url => `<img src="${url}" alt="Student photo" onclick="openLightbox('${url}')">`).join('')}
+            </div>` : ''}
+          ${a.videoUrl ? `<a href="${a.videoUrl}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>` : ''}
+          <div class="annotation-item__meta">
+            ${a.studentName} · ${a.className}, ${a.school}
+            ${a.status === 'pending' ? ' · <span style="color:#f59e0b">Pending approval</span>' : ''}
+            ${a.sources && a.sources.length ? ` · <a href="${a.sources[0]}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Toggle annotation form visibility, pre-fill from session
+    function toggleAnnotationForm(settlementId) {
+      const form = document.getElementById('annotation-form-' + settlementId);
+      if (!form) return;
+      const isHidden = form.style.display === 'none';
+      form.style.display = isHidden ? 'flex' : 'none';
+
+      if (isHidden) {
+        const session = getSession();
+        if (session) {
+          document.getElementById('af-name-' + settlementId).value = session.studentName || '';
+          document.getElementById('af-class-' + settlementId).value = session.className || '';
+          document.getElementById('af-school-' + settlementId).value = session.school || '';
+        }
+      }
+    }
+
+    // Handle annotation form submit
+    async function handleSubmitAnnotation(settlementId) {
+      const btn = document.querySelector(`#annotation-form-${settlementId} .annotation-form__submit`);
+      const name = document.getElementById('af-name-' + settlementId).value.trim();
+      const className = document.getElementById('af-class-' + settlementId).value.trim();
+      const school = document.getElementById('af-school-' + settlementId).value.trim();
+      const note = document.getElementById('af-note-' + settlementId).value.trim();
+      const source = document.getElementById('af-source-' + settlementId).value.trim();
+
+      if (!name || !className || !school || !note) {
+        alert('Please fill in your name, class, school, and note.');
+        return;
+      }
+
+      const photoInput = document.getElementById('af-photos-' + settlementId);
+      const photos = photoInput ? Array.from(photoInput.files) : [];
+      const videoUrl = document.getElementById('af-video-' + settlementId)?.value.trim() || '';
+
+      btn.disabled = true;
+      btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
+
+      try {
+        await submitAnnotation({ settlementId, studentName: name, className, school, note, source, photos, videoUrl });
+        document.getElementById('annotation-form-' + settlementId).style.display = 'none';
+        await loadAndRenderAnnotations(settlementId);
+      } catch (err) {
+        console.error('Submit annotation error:', err);
+        alert('Failed to submit. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Note';
+      }
+    }
+
+    // ── Photo selection helper ───────────────────────────────────────────────
+    function handlePhotoSelect(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const previewContainer = document.getElementById(previewId);
+      const countEl = document.getElementById(inputId.replace('photos', 'count'));
+
+      // Enforce max 5 files
+      const files = Array.from(input.files).slice(0, 5);
+
+      // Enforce 15MB per file
+      const validFiles = files.filter(f => {
+        if (f.size > 15 * 1024 * 1024) {
+          alert(`"${f.name}" exceeds the 15 MB limit and was removed.`);
+          return false;
+        }
+        return true;
+      });
+
+      // Store valid files back on input via DataTransfer
+      const dt = new DataTransfer();
+      validFiles.forEach(f => dt.items.add(f));
+      input.files = dt.files;
+
+      // Render previews
+      previewContainer.innerHTML = validFiles.map((f, i) => {
+        const url = URL.createObjectURL(f);
+        return `
+          <div class="photo-preview">
+            <img src="${url}" alt="Preview ${i + 1}" onclick="openLightbox('${url}')">
+            <button class="photo-preview__remove" onclick="removePhoto('${inputId}','${previewId}',${i})">&times;</button>
+          </div>
+        `;
+      }).join('');
+
+      if (countEl) countEl.textContent = validFiles.length > 0 ? `${validFiles.length}/5 photo${validFiles.length > 1 ? 's' : ''} selected` : '';
+    }
+
+    function removePhoto(inputId, previewId, index) {
+      const input = document.getElementById(inputId);
+      const files = Array.from(input.files);
+      files.splice(index, 1);
+      const dt = new DataTransfer();
+      files.forEach(f => dt.items.add(f));
+      input.files = dt.files;
+      handlePhotoSelect(inputId, previewId);
+    }
+
+    function openLightbox(src) {
+      document.getElementById('lightbox-img').src = src;
+      document.getElementById('lightbox').hidden = false;
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightbox').hidden = true;
+      document.getElementById('lightbox-img').src = '';
+    }
+
+    // ── Pin-drop mode ────────────────────────────────────────────────────────
+    let pendingPin = null;
+    let mapClickListener = null;
+
+    function enterPinDropMode() {
+      const btn = document.getElementById('add-site-btn');
+      btn.textContent = '✕ Cancel';
+      btn.classList.add('add-site-btn--active');
+      document.body.classList.add('pin-drop-mode');
+
+      mapClickListener = map.addListener('click', (e) => {
+        pendingPin = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        exitPinDropMode(false);
+        openSiteModal(pendingPin);
+      });
+    }
+
+    function exitPinDropMode(resetBtn = true) {
+      document.body.classList.remove('pin-drop-mode');
+      if (mapClickListener) {
+        google.maps.event.removeListener(mapClickListener);
+        mapClickListener = null;
+      }
+      if (resetBtn) {
+        const btn = document.getElementById('add-site-btn');
+        btn.textContent = '+ Add Site';
+        btn.classList.remove('add-site-btn--active');
+        pendingPin = null;
+      }
+    }
+
+    function openSiteModal(coords) {
+      const modal = document.getElementById('site-modal');
+      document.getElementById('site-modal-coords').textContent =
+        `📍 ${coords.lat.toFixed(5)}°N, ${Math.abs(coords.lng).toFixed(5)}°W`;
+
+      const session = getSession();
+      if (session) {
+        document.getElementById('sm-student').value = session.studentName || '';
+        document.getElementById('sm-class').value = session.className || '';
+        document.getElementById('sm-school').value = session.school || '';
+      }
+
+      modal.hidden = false;
+    }
+
+    function closeSiteModal() {
+      document.getElementById('site-modal').hidden = true;
+      exitPinDropMode();
+    }
+
+    async function handleSubmitSite() {
+      const name = document.getElementById('sm-name').value.trim();
+      const description = document.getElementById('sm-description').value.trim();
+      const source = document.getElementById('sm-source').value.trim();
+      const studentName = document.getElementById('sm-student').value.trim();
+      const className = document.getElementById('sm-class').value.trim();
+      const school = document.getElementById('sm-school').value.trim();
+
+      if (!name || !description || !studentName || !className || !school) {
+        alert('Please fill in all required fields (marked with *).');
+        return;
+      }
+
+      if (!pendingPin) {
+        alert('No location selected. Please close and try again.');
+        return;
+      }
+
+      const btn = document.getElementById('site-modal-submit');
+      btn.disabled = true;
+      const photos = Array.from(document.getElementById('sm-photos').files);
+      const videoUrl = document.getElementById('sm-video')?.value.trim() || '';
+      btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
+
+      try {
+        await submitSiteProposal({
+          name,
+          lat: pendingPin.lat,
+          lng: pendingPin.lng,
+          description,
+          source,
+          studentName,
+          className,
+          school,
+          photos,
+          videoUrl
+        });
+        closeSiteModal();
+        await renderStudentSubmissions();
+      } catch (err) {
+        console.error('Submit site error:', err);
+        alert('Failed to submit. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Submit Site';
+      }
     }
 
     async function initMap() {
@@ -1844,7 +2609,8 @@
         trails: { items: trailLines, type: 'mixed' },
         landmarks: { items: landmarkMarkers, type: 'marker' },
         ecoZones: { items: ecoZonePolygons, type: 'shape' },
-        neighbors: { items: neighborPolygons, type: 'shape' }
+        neighbors: { items: neighborPolygons, type: 'shape' },
+        studentSubmissions: { items: studentMarkers, type: 'marker' }
       };
 
       // ── Layer toggle logic ───────────────────────────────────────────
@@ -1924,6 +2690,16 @@
       document.getElementById('sources-btn').addEventListener('click', () => {
         document.getElementById('sources-modal').hidden = false;
       });
+
+      // Add Site button
+      document.getElementById('add-site-btn').addEventListener('click', () => {
+        const btn = document.getElementById('add-site-btn');
+        if (btn.classList.contains('add-site-btn--active')) {
+          exitPinDropMode();
+        } else {
+          enterPinDropMode();
+        }
+      });
       document.getElementById('sources-close').addEventListener('click', () => {
         document.getElementById('sources-modal').hidden = true;
       });
@@ -1932,8 +2708,16 @@
           document.getElementById('sources-modal').hidden = true;
         }
       });
+
+      // Load student submissions from Firestore
+      await renderStudentSubmissions();
     }
   </script>
+  <!-- Firebase SDK (compat v9) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+  <script src="submit.js"></script>
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&callback=initMap&libraries=marker&v=weekly"></script>
 </body>
 </html>

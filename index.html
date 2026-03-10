@@ -2435,7 +2435,7 @@
         strokeWeight: 2,
         fillColor: '#3b82f6',
         fillOpacity: 0.08,
-        clickable: false,
+        clickable: true,
         map
       });
 
@@ -2446,9 +2446,20 @@
         strokeWeight: 2,
         fillColor: '#ef4444',
         fillOpacity: 0.08,
-        clickable: false,
+        clickable: true,
         map
       });
+
+      // Forward polygon clicks into the map's pin-drop handler
+      function forwardPolyClick(e) {
+        if (mapClickListener) {
+          pendingPin = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+          exitPinDropMode(false);
+          openSiteModal(pendingPin);
+        }
+      }
+      weckPoly.addListener('click', forwardPolyClick);
+      siwanoyPoly.addListener('click', forwardPolyClick);
 
       // ── Bronx River (dashed polyline) ────────────────────────────────
       const bronxRiverLine = new google.maps.Polyline({

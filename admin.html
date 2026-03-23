@@ -32,6 +32,15 @@
     .btn--reject:hover { background: #b91c1c; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .empty { color: #64748b; text-align: center; padding: 40px; font-size: 14px; }
+    .leaderboard { width: 100%; border-collapse: collapse; }
+    .leaderboard th { text-align: left; padding: 10px 14px; border-bottom: 2px solid #334155; color: #94a3b8; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .leaderboard td { padding: 10px 14px; border-bottom: 1px solid #1e293b; font-size: 14px; }
+    .leaderboard tr:hover td { background: #1e293b; }
+    .leaderboard .rank { color: #64748b; width: 40px; }
+    .leaderboard .name { font-weight: 500; }
+    .leaderboard .num { text-align: center; width: 90px; }
+    .leaderboard .total { font-weight: 700; color: #60a5fa; }
+    .medal { font-size: 16px; margin-right: 4px; }
     a { color: #60a5fa; }
     .timestamp { color: #64748b; font-size: 12px; }
     #login { max-width: 360px; margin: 80px auto; text-align: center; }
@@ -63,6 +72,9 @@
       </button>
       <button class="tab" data-tab="submissions" onclick="switchTab('submissions')">
         Site Proposals <span class="count" id="count-submissions">0</span>
+      </button>
+      <button class="tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">
+        Leaderboard
       </button>
     </div>
 
@@ -156,7 +168,71 @@
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
     }
 
+    function renderLeaderboard() {
+      const list = document.getElementById('list');
+      const counts = {};
+
+      // Count annotations per student
+      allAnnotations.forEach(a => {
+        const name = (a.studentName || 'Unknown').trim();
+        if (!counts[name]) counts[name] = { notes: 0, sites: 0, school: a.school || '' };
+        counts[name].notes++;
+        if (!counts[name].school && a.school) counts[name].school = a.school;
+      });
+
+      // Count site proposals per student
+      allSubmissions.forEach(s => {
+        const name = (s.studentName || 'Unknown').trim();
+        if (!counts[name]) counts[name] = { notes: 0, sites: 0, school: s.school || '' };
+        counts[name].sites++;
+        if (!counts[name].school && s.school) counts[name].school = s.school;
+      });
+
+      const rows = Object.entries(counts)
+        .map(([name, c]) => ({ name, ...c, total: c.notes + c.sites }))
+        .sort((a, b) => b.total - a.total);
+
+      if (rows.length === 0) {
+        list.innerHTML = '<div class="empty">No student submissions yet.</div>';
+        return;
+      }
+
+      const medals = ['&#129351;', '&#129352;', '&#129353;']; // gold, silver, bronze
+
+      list.innerHTML = `
+        <table class="leaderboard">
+          <thead>
+            <tr>
+              <th class="rank">#</th>
+              <th>Student</th>
+              <th>School</th>
+              <th class="num">Notes</th>
+              <th class="num">Sites</th>
+              <th class="num">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map((r, i) => `
+              <tr>
+                <td class="rank">${i < 3 ? `<span class="medal">${medals[i]}</span>` : i + 1}</td>
+                <td class="name">${esc(r.name)}</td>
+                <td>${esc(r.school)}</td>
+                <td class="num">${r.notes}</td>
+                <td class="num">${r.sites}</td>
+                <td class="num total">${r.total}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+        <div style="color:#64748b;font-size:13px;margin-top:16px;text-align:right;">
+          ${rows.length} students · ${allAnnotations.length} notes · ${allSubmissions.length} site proposals
+        </div>
+      `;
+    }
+
     function render() {
+      if (currentTab === 'leaderboard') return renderLeaderboard();
+
       const list = document.getElementById('list');
       const items = currentTab === 'annotations' ? allAnnotations : allSubmissions;
 

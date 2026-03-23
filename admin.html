@@ -30,6 +30,8 @@
     .btn--approve:hover { background: #047857; }
     .btn--reject { background: #dc2626; color: #fff; }
     .btn--reject:hover { background: #b91c1c; }
+    .btn--delete { background: #581c87; color: #fff; }
+    .btn--delete:hover { background: #4a044e; }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .empty { color: #64748b; text-align: center; padding: 40px; font-size: 14px; }
     .leaderboard { width: 100%; border-collapse: collapse; }
@@ -294,6 +296,7 @@
               ` : `
                 <button class="btn btn--reject" onclick="setStatus('${collection}','${item.id}','pending')">Revert to Pending</button>
               `}
+              <button class="btn btn--delete" onclick="deleteItem('${collection}','${item.id}')">Delete</button>
             </div>
           </div>
         `;
@@ -311,6 +314,22 @@
       } catch (err) {
         console.error('Status update failed:', err);
         alert('Failed to update. Check console.');
+        btns.forEach(b => b.disabled = false);
+      }
+    }
+    async function deleteItem(collection, docId) {
+      if (!confirm('Are you sure you want to delete this? This cannot be undone (backup copy will remain).')) return;
+
+      const card = document.getElementById('card-' + docId);
+      const btns = card.querySelectorAll('.btn');
+      btns.forEach(b => b.disabled = true);
+
+      try {
+        await db.collection(collection).doc(docId).delete();
+        await loadData();
+      } catch (err) {
+        console.error('Delete failed:', err);
+        alert('Failed to delete. Check console.');
         btns.forEach(b => b.disabled = false);
       }
     }

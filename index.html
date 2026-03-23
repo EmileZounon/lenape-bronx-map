@@ -2327,7 +2327,7 @@
         await loadAndRenderAnnotations(settlementId);
       } catch (err) {
         console.error('Submit annotation error:', err);
-        alert('Failed to submit. Please try again.');
+        alert(err.message || 'Failed to submit. Please try again.');
         btn.disabled = false;
         btn.textContent = 'Submit Note';
       }
@@ -2480,7 +2480,7 @@
         await renderStudentSubmissions();
       } catch (err) {
         console.error('Submit site error:', err);
-        alert('Failed to submit. Please try again.');
+        alert(err.message || 'Failed to submit. Please try again.');
         btn.disabled = false;
         btn.textContent = 'Submit Site';
       }

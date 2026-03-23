@@ -25,7 +25,7 @@ function setSession(data) {
 }
 
 // ── Security helpers ─────────────────────────────────────────────────────
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
 
 function escapeHtml(str) {
@@ -52,7 +52,7 @@ async function uploadPhotos(files, folder) {
       throw new Error(`"${file.name}" is not an allowed image type. Use JPEG, PNG, GIF, or WebP.`);
     }
     const ext = file.name.split('.').pop().toLowerCase();
-    if (!['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) {
+    if (!['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'heif'].includes(ext)) {
       throw new Error(`"${file.name}" has an invalid file extension.`);
     }
     if (file.size > MAX_FILE_SIZE) {

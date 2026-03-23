@@ -2197,37 +2197,43 @@
     // Show detail panel for a student-submitted site
     function showStudentSubmissionDetail(sub) {
       const isPending = sub.status === 'pending';
+      const safeName = escapeHtml(sub.name || '');
+      const safeDesc = escapeHtml(sub.description || 'No description provided.');
+      const safeStudent = escapeHtml(sub.studentName || '');
+      const safeSchool = escapeHtml(sub.school || '');
+      const safeVideo = sanitizeUrl(sub.videoUrl);
+      const safeSource = sub.sources && sub.sources.length ? sanitizeUrl(sub.sources[0]) : '';
       const html = `
-        <h2 class="detail__name">${sub.name}</h2>
+        <h2 class="detail__name">${safeName}</h2>
         <p class="detail__meaning" style="color:${isPending ? '#f59e0b' : '#84BD00'}">
           ${isPending ? '⏳ Pending approval' : '✓ Student submission'}
         </p>
         <div class="detail__section">
           <div class="detail__section-title">Description</div>
-          <div class="detail__section-text">${sub.description || 'No description provided.'}</div>
+          <div class="detail__section-text">${safeDesc}</div>
         </div>
-        ${sub.sources && sub.sources.length ? `
+        ${safeSource ? `
         <div class="detail__section">
           <div class="detail__section-title">Source</div>
           <div class="detail__section-text">
-            <a href="${sub.sources[0]}" target="_blank" rel="noopener" style="color:var(--accent)">${sub.sources[0]}</a>
+            <a href="${safeSource}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(safeSource)}</a>
           </div>
         </div>` : ''}
         ${sub.photos && sub.photos.length ? `
         <div class="detail__section">
           <div class="detail__section-title">Photos</div>
           <div class="media-grid">
-            ${sub.photos.map(url => `<img src="${url}" alt="Student photo" onclick="openLightbox('${url}')">`).join('')}
+            ${sub.photos.map(url => { const s = sanitizeUrl(url); return s ? `<img src="${s}" alt="Student photo" onclick="openLightbox('${s}')">` : ''; }).join('')}
           </div>
         </div>` : ''}
-        ${sub.videoUrl ? `
+        ${safeVideo ? `
         <div class="detail__section">
           <div class="detail__section-title">Video</div>
-          <a href="${sub.videoUrl}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>
+          <a href="${safeVideo}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>
         </div>` : ''}
         <div class="detail__section">
           <div class="detail__section-title">Submitted by</div>
-          <div class="detail__section-text">${sub.studentName} — ${sub.school}</div>
+          <div class="detail__section-text">${safeStudent} — ${safeSchool}</div>
         </div>
       `;
 
@@ -2256,21 +2262,27 @@
         return;
       }
 
-      listEl.innerHTML = annotations.map(a => `
+      listEl.innerHTML = annotations.map(a => {
+        const safeNote = escapeHtml(a.note || '');
+        const safeName = escapeHtml(a.studentName || '');
+        const safeSchool = escapeHtml(a.school || '');
+        const safeVideo = sanitizeUrl(a.videoUrl);
+        const safeSource = a.sources && a.sources.length ? sanitizeUrl(a.sources[0]) : '';
+        return `
         <div class="annotation-item ${a.status === 'pending' ? 'annotation-item--pending' : ''}">
-          <div class="annotation-item__note">${a.note}</div>
+          <div class="annotation-item__note">${safeNote}</div>
           ${a.photos && a.photos.length ? `
             <div class="media-grid">
-              ${a.photos.map(url => `<img src="${url}" alt="Student photo" onclick="openLightbox('${url}')">`).join('')}
+              ${a.photos.map(url => { const s = sanitizeUrl(url); return s ? `<img src="${s}" alt="Student photo" onclick="openLightbox('${s}')">` : ''; }).join('')}
             </div>` : ''}
-          ${a.videoUrl ? `<a href="${a.videoUrl}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>` : ''}
+          ${safeVideo ? `<a href="${safeVideo}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>` : ''}
           <div class="annotation-item__meta">
-            ${a.studentName} · ${a.school}
+            ${safeName} · ${safeSchool}
             ${a.status === 'pending' ? ' · <span style="color:#f59e0b">Pending approval</span>' : ''}
-            ${a.sources && a.sources.length ? ` · <a href="${a.sources[0]}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
+            ${safeSource ? ` · <a href="${safeSource}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     }
 
     // Toggle annotation form visibility, pre-fill from session

@@ -68,6 +68,8 @@
     <h1>Lenape Bronx Map — Admin</h1>
     <p class="subtitle">Review and approve student submissions</p>
 
+    <button class="btn btn--approve" onclick="exportAllData()" style="margin-bottom:16px;padding:8px 16px;font-size:14px;">⬇ Download All Data</button>
+
     <div class="tabs">
       <button class="tab tab--active" data-tab="annotations" onclick="switchTab('annotations')">
         Notes <span class="count" id="count-annotations">0</span>
@@ -317,6 +319,34 @@
         btns.forEach(b => b.disabled = false);
       }
     }
+    async function exportAllData() {
+      try {
+        const [annSnap, subSnap, backAnn, backSub] = await Promise.all([
+          db.collection('annotations').get(),
+          db.collection('submissions').get(),
+          db.collection('backups_annotations').get().catch(() => ({ docs: [] })),
+          db.collection('backups_submissions').get().catch(() => ({ docs: [] })),
+        ]);
+        const data = {
+          exportedAt: new Date().toISOString(),
+          annotations: annSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          submissions: subSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+          backups_annotations: backAnn.docs.map(d => ({ id: d.id, ...d.data() })),
+          backups_submissions: backSub.docs.map(d => ({ id: d.id, ...d.data() })),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lenape-map-export-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Export failed:', err);
+        alert('Export failed. Check console.');
+      }
+    }
+
     async function deleteItem(collection, docId) {
       if (!confirm('Are you sure you want to delete this? This cannot be undone (backup copy will remain).')) return;
 

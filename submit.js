@@ -67,7 +67,13 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection('annotations').add(data);
+  const docRef = await db.collection('annotations').add(data);
+  // Backup: write a copy to backups collection (fire-and-forget)
+  db.collection('backups_annotations').add({
+    ...data,
+    originalId: docRef.id,
+    backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(err => console.error('Backup annotation failed:', err));
   setSession({ studentName: data.studentName, className: data.className, school: data.school });
 }
 
@@ -100,6 +106,12 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection('submissions').add(data);
+  const docRef = await db.collection('submissions').add(data);
+  // Backup: write a copy to backups collection (fire-and-forget)
+  db.collection('backups_submissions').add({
+    ...data,
+    originalId: docRef.id,
+    backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(err => console.error('Backup submission failed:', err));
   setSession({ studentName: data.studentName, className: data.className, school: data.school });
 }

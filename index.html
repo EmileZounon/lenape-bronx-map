@@ -2825,6 +2825,53 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
   <script src="submit.js"></script>
+
+  <!-- Admin export (visible only with ?admin in URL) -->
+  <div id="admin-export" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;">
+    <button onclick="exportAllData()" style="background:#1e40af;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+      ⬇ Export All Data
+    </button>
+  </div>
+  <script>
+    // Show export button only for admin
+    if (new URLSearchParams(window.location.search).has('admin')) {
+      document.getElementById('admin-export').style.display = 'block';
+    }
+
+    async function exportAllData() {
+      const btn = document.querySelector('#admin-export button');
+      btn.disabled = true;
+      btn.textContent = 'Exporting...';
+      try {
+        const [annotations, submissions, backupAnnotations, backupSubmissions] = await Promise.all([
+          db.collection('annotations').get(),
+          db.collection('submissions').get(),
+          db.collection('backups_annotations').get().catch(() => ({ docs: [] })),
+          db.collection('backups_submissions').get().catch(() => ({ docs: [] })),
+        ]);
+        const data = {
+          exportedAt: new Date().toISOString(),
+          annotations: annotations.docs.map(d => ({ id: d.id, ...d.data() })),
+          submissions: submissions.docs.map(d => ({ id: d.id, ...d.data() })),
+          backups_annotations: backupAnnotations.docs.map(d => ({ id: d.id, ...d.data() })),
+          backups_submissions: backupSubmissions.docs.map(d => ({ id: d.id, ...d.data() })),
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lenape-map-export-${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Export failed:', err);
+        alert('Export failed. Check console for details.');
+      }
+      btn.disabled = false;
+      btn.textContent = '⬇ Export All Data';
+    }
+  </script>
+
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&callback=initMap&libraries=marker&v=weekly"></script>
 </body>
 </html>

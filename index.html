@@ -1479,7 +1479,6 @@
         <div id="sm-previews" class="photo-previews"></div>
         <span id="sm-count" class="photo-count"></span>
         <input id="sm-student" type="text" placeholder="Your name *" maxlength="80">
-        <input id="sm-class" type="text" placeholder="Class name *" maxlength="80">
         <input id="sm-school" type="text" placeholder="School *" maxlength="80">
         <div class="site-modal__actions">
           <button class="site-modal__cancel" onclick="closeSiteModal()">Cancel</button>
@@ -2131,7 +2130,6 @@
           <button class="add-note-btn" onclick="toggleAnnotationForm(${site.id})">+ Add a Note</button>
           <div id="annotation-form-${site.id}" class="annotation-form" style="display:none">
             <input id="af-name-${site.id}" type="text" placeholder="Your name *" maxlength="80">
-            <input id="af-class-${site.id}" type="text" placeholder="Class name *" maxlength="80">
             <input id="af-school-${site.id}" type="text" placeholder="School *" maxlength="80">
             <textarea id="af-note-${site.id}" placeholder="Your note or research finding *" rows="3" maxlength="1000"></textarea>
             <input id="af-source-${site.id}" type="url" placeholder="Source URL (optional)">
@@ -2229,7 +2227,7 @@
         </div>` : ''}
         <div class="detail__section">
           <div class="detail__section-title">Submitted by</div>
-          <div class="detail__section-text">${sub.studentName} — ${sub.className}, ${sub.school}</div>
+          <div class="detail__section-text">${sub.studentName} — ${sub.school}</div>
         </div>
       `;
 
@@ -2267,7 +2265,7 @@
             </div>` : ''}
           ${a.videoUrl ? `<a href="${a.videoUrl}" target="_blank" rel="noopener" class="video-link">▶ Watch video</a>` : ''}
           <div class="annotation-item__meta">
-            ${a.studentName} · ${a.className}, ${a.school}
+            ${a.studentName} · ${a.school}
             ${a.status === 'pending' ? ' · <span style="color:#f59e0b">Pending approval</span>' : ''}
             ${a.sources && a.sources.length ? ` · <a href="${a.sources[0]}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
           </div>
@@ -2286,7 +2284,6 @@
         const session = getSession();
         if (session) {
           document.getElementById('af-name-' + settlementId).value = session.studentName || '';
-          document.getElementById('af-class-' + settlementId).value = session.className || '';
           document.getElementById('af-school-' + settlementId).value = session.school || '';
         }
       }
@@ -2296,13 +2293,12 @@
     async function handleSubmitAnnotation(settlementId) {
       const btn = document.querySelector(`#annotation-form-${settlementId} .annotation-form__submit`);
       const name = document.getElementById('af-name-' + settlementId).value.trim();
-      const className = document.getElementById('af-class-' + settlementId).value.trim();
       const school = document.getElementById('af-school-' + settlementId).value.trim();
       const note = document.getElementById('af-note-' + settlementId).value.trim();
       const source = document.getElementById('af-source-' + settlementId).value.trim();
 
-      if (!name || !className || !school || !note) {
-        alert('Please fill in your name, class, school, and note.');
+      if (!name || !school || !note) {
+        alert('Please fill in your name, school, and note.');
         return;
       }
 
@@ -2314,7 +2310,7 @@
       btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
 
       try {
-        await submitAnnotation({ settlementId, studentName: name, className, school, note, source, photos, videoUrl });
+        await submitAnnotation({ settlementId, studentName: name, className: '', school, note, source, photos, videoUrl });
         document.getElementById('annotation-form-' + settlementId).style.display = 'none';
         await loadAndRenderAnnotations(settlementId);
       } catch (err) {
@@ -2421,7 +2417,6 @@
       const session = getSession();
       if (session) {
         document.getElementById('sm-student').value = session.studentName || '';
-        document.getElementById('sm-class').value = session.className || '';
         document.getElementById('sm-school').value = session.school || '';
       }
 
@@ -2438,10 +2433,9 @@
       const description = document.getElementById('sm-description').value.trim();
       const source = document.getElementById('sm-source').value.trim();
       const studentName = document.getElementById('sm-student').value.trim();
-      const className = document.getElementById('sm-class').value.trim();
       const school = document.getElementById('sm-school').value.trim();
 
-      if (!name || !description || !studentName || !className || !school) {
+      if (!name || !description || !studentName || !school) {
         alert('Please fill in all required fields (marked with *).');
         return;
       }
@@ -2465,7 +2459,7 @@
           description,
           source,
           studentName,
-          className,
+          className: '',
           school,
           photos,
           videoUrl

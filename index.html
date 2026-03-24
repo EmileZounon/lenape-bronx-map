@@ -2453,6 +2453,17 @@
       const isHidden = form.style.display === 'none';
       form.style.display = isHidden ? 'flex' : 'none';
 
+      if (!isHidden) {
+        if (editingAnnotationId) {
+          editingAnnotationId = null;
+          document.getElementById('af-name-' + settlementId).disabled = false;
+          document.getElementById('af-school-' + settlementId).disabled = false;
+          document.getElementById('af-email-' + settlementId).disabled = false;
+          const btn = form.querySelector('.annotation-form__submit');
+          if (btn) btn.textContent = 'Submit Note';
+        }
+      }
+
       if (isHidden) {
         const session = getSession();
         if (session) {
@@ -2489,14 +2500,22 @@
       btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
 
       try {
-        await submitAnnotation({ settlementId, studentName: name, className: '', school, email, note, source, photos, videoUrl });
+        if (editingAnnotationId) {
+          await updateAnnotation(editingAnnotationId, { note, source, videoUrl, photos });
+          editingAnnotationId = null;
+          document.getElementById('af-name-' + settlementId).disabled = false;
+          document.getElementById('af-school-' + settlementId).disabled = false;
+          document.getElementById('af-email-' + settlementId).disabled = false;
+        } else {
+          await submitAnnotation({ settlementId, studentName: name, className: '', school, email, note, source, photos, videoUrl });
+        }
         document.getElementById('annotation-form-' + settlementId).style.display = 'none';
         await loadAndRenderAnnotations(settlementId);
       } catch (err) {
         console.error('Submit annotation error:', err);
         alert(err.message || 'Failed to submit. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Submit Note';
+        btn.textContent = editingAnnotationId ? 'Update Note' : 'Submit Note';
       }
     }
 
@@ -2605,6 +2624,20 @@
 
     function closeSiteModal() {
       document.getElementById('site-modal').hidden = true;
+      if (editingSiteId) {
+        editingSiteId = null;
+        document.getElementById('sm-student').disabled = false;
+        document.getElementById('sm-school').disabled = false;
+        document.getElementById('sm-email').disabled = false;
+        document.getElementById('site-modal-submit').textContent = 'Submit Site';
+        document.getElementById('site-modal-subtitle').textContent = 'Fill in the details for this location.';
+      }
+      document.getElementById('sm-name').value = '';
+      document.getElementById('sm-description').value = '';
+      document.getElementById('sm-source').value = '';
+      document.getElementById('sm-video').value = '';
+      document.getElementById('sm-previews').innerHTML = '';
+      document.getElementById('sm-count').textContent = '';
       exitPinDropMode();
     }
 
@@ -2773,26 +2806,22 @@
       btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
 
       try {
-        await submitSiteProposal({
-          name,
-          lat: pendingPin.lat,
-          lng: pendingPin.lng,
-          description,
-          source,
-          studentName,
-          className: '',
-          school,
-          email,
-          photos,
-          videoUrl
-        });
+        if (editingSiteId) {
+          await updateSiteProposal(editingSiteId, { name, description, source, videoUrl, photos });
+          editingSiteId = null;
+        } else {
+          await submitSiteProposal({
+            name, lat: pendingPin.lat, lng: pendingPin.lng, description, source,
+            studentName, className: '', school, email, photos, videoUrl
+          });
+        }
         closeSiteModal();
         await renderStudentSubmissions();
       } catch (err) {
         console.error('Submit site error:', err);
         alert(err.message || 'Failed to submit. Please try again.');
         btn.disabled = false;
-        btn.textContent = 'Submit Site';
+        btn.textContent = editingSiteId ? 'Update Site' : 'Submit Site';
       }
     }
 

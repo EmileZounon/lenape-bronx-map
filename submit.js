@@ -83,13 +83,14 @@ async function loadAnnotations(settlementId) {
 }
 
 // ── Submit an annotation ─────────────────────────────────────────────────
-async function submitAnnotation({ settlementId, studentName, className, school, note, source, photos = [], videoUrl = '' }) {
+async function submitAnnotation({ settlementId, studentName, className, school, email, note, source, photos = [], videoUrl = '' }) {
   const photoUrls = photos.length > 0 ? await uploadPhotos(photos, 'annotations') : [];
   const data = {
     settlementId,
     studentName: studentName.trim(),
     className: className.trim(),
     school: school.trim(),
+    email: email.trim(),
     note: note.trim(),
     sources: source.trim() ? [source.trim()] : [],
     photos: photoUrls,
@@ -104,7 +105,7 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
     originalId: docRef.id,
     backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(err => console.error('Backup annotation failed:', err));
-  setSession({ studentName: data.studentName, className: data.className, school: data.school });
+  setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
 // ── Load approved submissions (new site proposals) ───────────────────────
@@ -120,7 +121,7 @@ async function loadSubmissions() {
 }
 
 // ── Submit a new site proposal ───────────────────────────────────────────
-async function submitSiteProposal({ name, lat, lng, description, source, studentName, className, school, photos = [], videoUrl = '' }) {
+async function submitSiteProposal({ name, lat, lng, description, source, studentName, className, school, email, photos = [], videoUrl = '' }) {
   const photoUrls = photos.length > 0 ? await uploadPhotos(photos, 'submissions') : [];
   const data = {
     name: name.trim(),
@@ -133,6 +134,7 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     studentName: studentName.trim(),
     className: className.trim(),
     school: school.trim(),
+    email: email.trim(),
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -143,5 +145,5 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     originalId: docRef.id,
     backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
   }).catch(err => console.error('Backup submission failed:', err));
-  setSession({ studentName: data.studentName, className: data.className, school: data.school });
+  setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }

@@ -2468,7 +2468,6 @@
           editingAnnotationId = null;
           document.getElementById('af-name-' + settlementId).disabled = false;
           document.getElementById('af-school-' + settlementId).disabled = false;
-          document.getElementById('af-email-' + settlementId).disabled = false;
           const btn = form.querySelector('.annotation-form__submit');
           if (btn) btn.textContent = 'Submit Note';
         }
@@ -2515,7 +2514,6 @@
           editingAnnotationId = null;
           document.getElementById('af-name-' + settlementId).disabled = false;
           document.getElementById('af-school-' + settlementId).disabled = false;
-          document.getElementById('af-email-' + settlementId).disabled = false;
         } else {
           await submitAnnotation({ settlementId, studentName: name, className: '', school, email, note, source, photos, videoUrl });
         }
@@ -2638,7 +2636,6 @@
         editingSiteId = null;
         document.getElementById('sm-student').disabled = false;
         document.getElementById('sm-school').disabled = false;
-        document.getElementById('sm-email').disabled = false;
         document.getElementById('site-modal-submit').textContent = 'Submit Site';
         document.getElementById('site-modal-subtitle').textContent = 'Fill in the details for this location.';
       }
@@ -2740,7 +2737,6 @@
 
           document.getElementById('af-name-' + site.id).disabled = true;
           document.getElementById('af-school-' + site.id).disabled = true;
-          document.getElementById('af-email-' + site.id).disabled = true;
 
           editingAnnotationId = docId;
           const btn = form.querySelector('.annotation-form__submit');
@@ -2776,7 +2772,6 @@
 
         document.getElementById('sm-student').disabled = true;
         document.getElementById('sm-school').disabled = true;
-        document.getElementById('sm-email').disabled = true;
 
         editingSiteId = docId;
         document.getElementById('site-modal-submit').textContent = 'Update Site';

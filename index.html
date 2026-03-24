@@ -2608,6 +2608,142 @@
       exitPinDropMode();
     }
 
+    // ── My Submissions ────────────────────────────────────────────────────
+    function openMySubsModal() {
+      const modal = document.getElementById('my-subs-modal');
+      const session = getSession();
+      if (session && session.email) {
+        document.getElementById('my-subs-email').value = session.email;
+      }
+      document.getElementById('my-subs-list').innerHTML = '';
+      modal.hidden = false;
+    }
+
+    function closeMySubsModal() {
+      document.getElementById('my-subs-modal').hidden = true;
+    }
+
+    async function lookupMySubmissions() {
+      const email = document.getElementById('my-subs-email').value.trim();
+      if (!email) { alert('Please enter your email.'); return; }
+
+      const listEl = document.getElementById('my-subs-list');
+      listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Looking up...</div>';
+
+      try {
+        const { annotations, submissions } = await loadSubmissionsByEmail(email);
+        if (annotations.length === 0 && submissions.length === 0) {
+          listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px 0;">No submissions found for this email.</div>';
+          return;
+        }
+
+        let html = '';
+        annotations.forEach(a => {
+          const settlement = SETTLEMENTS.find(s => s.id === a.settlementId);
+          html += `
+            <div class="my-subs-item">
+              <div class="my-subs-item__header">
+                <span class="my-subs-item__type">Note — ${escapeHtml(settlement ? settlement.name : 'Settlement #' + a.settlementId)}</span>
+                <span class="my-subs-item__status my-subs-item__status--${a.status}">${a.status}</span>
+              </div>
+              <div class="my-subs-item__text">${escapeHtml(a.note)}</div>
+              <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')">Edit</button>
+            </div>`;
+        });
+        submissions.forEach(s => {
+          html += `
+            <div class="my-subs-item">
+              <div class="my-subs-item__header">
+                <span class="my-subs-item__type">Site Proposal — ${escapeHtml(s.name)}</span>
+                <span class="my-subs-item__status my-subs-item__status--${s.status}">${s.status}</span>
+              </div>
+              <div class="my-subs-item__text">${escapeHtml(s.description)}</div>
+              <button class="my-subs-item__edit" onclick="editSiteProposal('${s.id}')">Edit</button>
+            </div>`;
+        });
+        listEl.innerHTML = html;
+      } catch (err) {
+        console.error('Lookup error:', err);
+        listEl.innerHTML = '<div style="color:#ef4444;font-size:13px;">Failed to look up. Please try again.</div>';
+      }
+    }
+
+    let editingAnnotationId = null;
+
+    async function editAnnotation(docId) {
+      closeMySubsModal();
+      try {
+        const doc = await db.collection('annotations').doc(docId).get();
+        if (!doc.exists) { alert('Submission not found.'); return; }
+        const data = doc.data();
+
+        const site = SETTLEMENTS.find(s => s.id === data.settlementId);
+        if (!site) { alert('Settlement not found.'); return; }
+
+        showSettlementDetail(site);
+
+        setTimeout(() => {
+          const form = document.getElementById('annotation-form-' + site.id);
+          if (!form) return;
+          form.style.display = 'flex';
+
+          document.getElementById('af-name-' + site.id).value = data.studentName || '';
+          document.getElementById('af-school-' + site.id).value = data.school || '';
+          document.getElementById('af-email-' + site.id).value = data.email || '';
+          document.getElementById('af-note-' + site.id).value = data.note || '';
+          document.getElementById('af-source-' + site.id).value = (data.sources && data.sources[0]) || '';
+          document.getElementById('af-video-' + site.id).value = data.videoUrl || '';
+
+          document.getElementById('af-name-' + site.id).disabled = true;
+          document.getElementById('af-school-' + site.id).disabled = true;
+          document.getElementById('af-email-' + site.id).disabled = true;
+
+          editingAnnotationId = docId;
+          const btn = form.querySelector('.annotation-form__submit');
+          btn.textContent = 'Update Note';
+        }, 100);
+      } catch (err) {
+        console.error('Edit annotation error:', err);
+        alert('Failed to load submission for editing.');
+      }
+    }
+
+    let editingSiteId = null;
+
+    async function editSiteProposal(docId) {
+      closeMySubsModal();
+      try {
+        const doc = await db.collection('submissions').doc(docId).get();
+        if (!doc.exists) { alert('Submission not found.'); return; }
+        const data = doc.data();
+
+        const modal = document.getElementById('site-modal');
+        document.getElementById('site-modal-coords').textContent =
+          data.lat ? `📍 ${data.lat.toFixed(5)}°N, ${Math.abs(data.lng).toFixed(5)}°W` : '📍 No location';
+        pendingPin = { lat: data.lat, lng: data.lng };
+
+        document.getElementById('sm-name').value = data.name || '';
+        document.getElementById('sm-description').value = data.description || '';
+        document.getElementById('sm-source').value = (data.sources && data.sources[0]) || '';
+        document.getElementById('sm-video').value = data.videoUrl || '';
+        document.getElementById('sm-student').value = data.studentName || '';
+        document.getElementById('sm-school').value = data.school || '';
+        document.getElementById('sm-email').value = data.email || '';
+
+        document.getElementById('sm-student').disabled = true;
+        document.getElementById('sm-school').disabled = true;
+        document.getElementById('sm-email').disabled = true;
+
+        editingSiteId = docId;
+        document.getElementById('site-modal-submit').textContent = 'Update Site';
+        document.getElementById('site-modal-subtitle').textContent = 'Edit your site proposal. It will be re-submitted for approval.';
+        modal.hidden = false;
+      } catch (err) {
+        console.error('Edit site error:', err);
+        alert('Failed to load submission for editing.');
+      }
+    }
+
     async function handleSubmitSite() {
       const name = document.getElementById('sm-name').value.trim();
       const description = document.getElementById('sm-description').value.trim();

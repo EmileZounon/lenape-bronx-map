@@ -147,3 +147,48 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
   }).catch(err => console.error('Backup submission failed:', err));
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
+
+// ── Update an existing annotation ───────────────────────────────────────
+async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [] }) {
+  const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'annotations') : [];
+  const updates = {
+    note: note.trim(),
+    sources: source.trim() ? [source.trim()] : [],
+    videoUrl: videoUrl.trim(),
+    status: 'pending',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (newPhotoUrls.length > 0) {
+    updates.photos = newPhotoUrls;
+  }
+  await db.collection('annotations').doc(docId).update(updates);
+}
+
+// ── Update an existing site proposal ────────────────────────────────────
+async function updateSiteProposal(docId, { name, description, source, videoUrl = '', photos = [] }) {
+  const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'submissions') : [];
+  const updates = {
+    name: name.trim(),
+    description: description.trim(),
+    sources: source.trim() ? [source.trim()] : [],
+    videoUrl: videoUrl.trim(),
+    status: 'pending',
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  if (newPhotoUrls.length > 0) {
+    updates.photos = newPhotoUrls;
+  }
+  await db.collection('submissions').doc(docId).update(updates);
+}
+
+// ── Load all submissions by email ───────────────────────────────────────
+async function loadSubmissionsByEmail(email) {
+  const [annSnap, subSnap] = await Promise.all([
+    db.collection('annotations').where('email', '==', email).get(),
+    db.collection('submissions').where('email', '==', email).get()
+  ]);
+  return {
+    annotations: annSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+    submissions: subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  };
+}

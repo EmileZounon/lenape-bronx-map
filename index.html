@@ -1480,6 +1480,7 @@
         <span id="sm-count" class="photo-count"></span>
         <input id="sm-student" type="text" placeholder="Your name *" maxlength="80">
         <input id="sm-school" type="text" placeholder="School *" maxlength="80">
+        <input id="sm-email" type="email" placeholder="Your email *" maxlength="120">
         <div class="site-modal__actions">
           <button class="site-modal__cancel" onclick="closeSiteModal()">Cancel</button>
           <button class="site-modal__submit" id="site-modal-submit" onclick="handleSubmitSite()">Submit Site</button>
@@ -2437,6 +2438,7 @@
       if (session) {
         document.getElementById('sm-student').value = session.studentName || '';
         document.getElementById('sm-school').value = session.school || '';
+        document.getElementById('sm-email').value = session.email || '';
       }
 
       modal.hidden = false;
@@ -2453,9 +2455,14 @@
       const source = document.getElementById('sm-source').value.trim();
       const studentName = document.getElementById('sm-student').value.trim();
       const school = document.getElementById('sm-school').value.trim();
+      const email = document.getElementById('sm-email').value.trim();
 
-      if (!name || !description || !studentName || !school) {
+      if (!name || !description || !studentName || !school || !email) {
         alert('Please fill in all required fields (marked with *).');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
         return;
       }
 
@@ -2480,6 +2487,7 @@
           studentName,
           className: '',
           school,
+          email,
           photos,
           videoUrl
         });

@@ -2372,8 +2372,6 @@
       const safeSchool = escapeHtml(sub.school || '');
       const safeVideo = sanitizeUrl(sub.videoUrl);
       const safeSource = sub.sources && sub.sources.length ? sanitizeUrl(sub.sources[0]) : '';
-      const session = getSession();
-      const isOwner = session && sub.studentName === session.studentName && sub.school === session.school;
       const html = `
         <h2 class="detail__name">${safeName}</h2>
         <p class="detail__meaning" style="color:${isPending ? '#f59e0b' : '#84BD00'}">
@@ -2406,7 +2404,7 @@
           <div class="detail__section-title">Submitted by</div>
           <div class="detail__section-text">${safeStudent} — ${safeSchool}</div>
         </div>
-        ${isOwner ? `<button class="my-subs-item__edit" onclick="editSiteProposal('${sub.id}')" style="margin-top:8px">Edit this submission</button>` : ''}
+        <button class="my-subs-item__edit" onclick="editSiteProposal('${sub.id}')" style="margin-top:8px">Edit this submission</button>
       `;
 
       if (isMobile()) {
@@ -2434,14 +2432,12 @@
         return;
       }
 
-      const session = getSession();
       listEl.innerHTML = annotations.map(a => {
         const safeNote = escapeHtml(a.note || '');
         const safeName = escapeHtml(a.studentName || '');
         const safeSchool = escapeHtml(a.school || '');
         const safeVideo = sanitizeUrl(a.videoUrl);
         const safeSource = a.sources && a.sources.length ? sanitizeUrl(a.sources[0]) : '';
-        const isOwner = session && a.studentName === session.studentName && a.school === session.school;
         return `
         <div class="annotation-item ${a.status === 'pending' ? 'annotation-item--pending' : ''}">
           <div class="annotation-item__note">${safeNote}</div>
@@ -2454,7 +2450,7 @@
             ${safeName} · ${safeSchool}
             ${a.status === 'pending' ? ' · <span style="color:#f59e0b">Pending approval</span>' : ''}
             ${safeSource ? ` · <a href="${safeSource}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
-            ${isOwner ? ` · <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')" style="margin-left:4px">Edit</button>` : ''}
+             · <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')" style="margin-left:4px">Edit</button>
           </div>
         </div>`;
       }).join('');

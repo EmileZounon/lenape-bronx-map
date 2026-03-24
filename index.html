@@ -2509,7 +2509,7 @@
 
       try {
         if (editingAnnotationId) {
-          await updateAnnotation(editingAnnotationId, { note, source, videoUrl, photos });
+          await updateAnnotation(editingAnnotationId, { note, source, videoUrl, photos, email });
           editingAnnotationId = null;
           document.getElementById('af-name-' + settlementId).disabled = false;
           document.getElementById('af-school-' + settlementId).disabled = false;
@@ -2672,7 +2672,8 @@
       listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Looking up...</div>';
 
       try {
-        const { annotations, submissions } = await loadSubmissionsByEmail(email);
+        const session = getSession();
+        const { annotations, submissions } = await loadSubmissionsByEmail(email, session?.studentName, session?.school);
         if (annotations.length === 0 && submissions.length === 0) {
           listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px 0;">No submissions found for this email.</div>';
           return;
@@ -2815,7 +2816,7 @@
 
       try {
         if (editingSiteId) {
-          await updateSiteProposal(editingSiteId, { name, description, source, videoUrl, photos });
+          await updateSiteProposal(editingSiteId, { name, description, source, videoUrl, photos, email });
           editingSiteId = null;
         } else {
           await submitSiteProposal({

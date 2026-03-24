@@ -149,7 +149,7 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
 }
 
 // ── Update an existing annotation ───────────────────────────────────────
-async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [] }) {
+async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [], email = '' }) {
   const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'annotations') : [];
   const updates = {
     note: note.trim(),
@@ -161,11 +161,14 @@ async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [
   if (newPhotoUrls.length > 0) {
     updates.photos = newPhotoUrls;
   }
+  if (email.trim()) {
+    updates.email = email.trim();
+  }
   await db.collection('annotations').doc(docId).update(updates);
 }
 
 // ── Update an existing site proposal ────────────────────────────────────
-async function updateSiteProposal(docId, { name, description, source, videoUrl = '', photos = [] }) {
+async function updateSiteProposal(docId, { name, description, source, videoUrl = '', photos = [], email = '' }) {
   const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'submissions') : [];
   const updates = {
     name: name.trim(),
@@ -178,17 +181,41 @@ async function updateSiteProposal(docId, { name, description, source, videoUrl =
   if (newPhotoUrls.length > 0) {
     updates.photos = newPhotoUrls;
   }
+  if (email.trim()) {
+    updates.email = email.trim();
+  }
   await db.collection('submissions').doc(docId).update(updates);
 }
 
-// ── Load all submissions by email ───────────────────────────────────────
-async function loadSubmissionsByEmail(email) {
-  const [annSnap, subSnap] = await Promise.all([
+// ── Load all submissions by email, falling back to name+school ───────────
+async function loadSubmissionsByEmail(email, studentName, school) {
+  // Query by email
+  const [annByEmail, subByEmail] = await Promise.all([
     db.collection('annotations').where('email', '==', email).get(),
     db.collection('submissions').where('email', '==', email).get()
   ]);
-  return {
-    annotations: annSnap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
-    submissions: subSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-  };
+
+  const annotations = annByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const submissions = subByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const seenIds = new Set([...annotations.map(a => a.id), ...submissions.map(s => s.id)]);
+
+  // Also query by name+school to find old submissions without email
+  if (studentName && school) {
+    const [annByName, subByName] = await Promise.all([
+      db.collection('annotations').where('studentName', '==', studentName).where('school', '==', school).get(),
+      db.collection('submissions').where('studentName', '==', studentName).where('school', '==', school).get()
+    ]);
+    annByName.docs.forEach(doc => {
+      if (!seenIds.has(doc.id)) {
+        annotations.push({ id: doc.id, ...doc.data() });
+      }
+    });
+    subByName.docs.forEach(doc => {
+      if (!seenIds.has(doc.id)) {
+        submissions.push({ id: doc.id, ...doc.data() });
+      }
+    });
+  }
+
+  return { annotations, submissions };
 }

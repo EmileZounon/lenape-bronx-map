@@ -287,6 +287,7 @@
               </div>
               <span class="card__status card__status--${item.status}">${item.status}</span>
             </div>
+            ${item.email ? `<div class="card__field"><strong>Email:</strong> ${esc(item.email)}</div>` : ''}
             ${body}
             ${photos ? `<div class="card__photos">${photos}</div>` : ''}
             ${sources ? `<div class="card__field"><strong>Sources:</strong> ${sources}</div>` : ''}

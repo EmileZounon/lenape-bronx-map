@@ -2131,6 +2131,7 @@
           <div id="annotation-form-${site.id}" class="annotation-form" style="display:none">
             <input id="af-name-${site.id}" type="text" placeholder="Your name *" maxlength="80">
             <input id="af-school-${site.id}" type="text" placeholder="School *" maxlength="80">
+            <input id="af-email-${site.id}" type="email" placeholder="Your email *" maxlength="120">
             <textarea id="af-note-${site.id}" placeholder="Your note or research finding *" rows="3" maxlength="1000"></textarea>
             <input id="af-source-${site.id}" type="url" placeholder="Source URL (optional)">
             <input id="af-video-${site.id}" type="url" placeholder="Video link (YouTube/Google Drive, optional)">
@@ -2297,6 +2298,7 @@
         if (session) {
           document.getElementById('af-name-' + settlementId).value = session.studentName || '';
           document.getElementById('af-school-' + settlementId).value = session.school || '';
+          document.getElementById('af-email-' + settlementId).value = session.email || '';
         }
       }
     }
@@ -2306,11 +2308,16 @@
       const btn = document.querySelector(`#annotation-form-${settlementId} .annotation-form__submit`);
       const name = document.getElementById('af-name-' + settlementId).value.trim();
       const school = document.getElementById('af-school-' + settlementId).value.trim();
+      const email = document.getElementById('af-email-' + settlementId).value.trim();
       const note = document.getElementById('af-note-' + settlementId).value.trim();
       const source = document.getElementById('af-source-' + settlementId).value.trim();
 
-      if (!name || !school || !note) {
-        alert('Please fill in your name, school, and note.');
+      if (!name || !school || !note || !email) {
+        alert('Please fill in your name, school, email, and note.');
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        alert('Please enter a valid email address.');
         return;
       }
 
@@ -2322,7 +2329,7 @@
       btn.textContent = photos.length > 0 ? 'Uploading photos...' : 'Submitting...';
 
       try {
-        await submitAnnotation({ settlementId, studentName: name, className: '', school, note, source, photos, videoUrl });
+        await submitAnnotation({ settlementId, studentName: name, className: '', school, email, note, source, photos, videoUrl });
         document.getElementById('annotation-form-' + settlementId).style.display = 'none';
         await loadAndRenderAnnotations(settlementId);
       } catch (err) {

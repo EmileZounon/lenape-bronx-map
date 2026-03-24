@@ -769,6 +769,150 @@
       background: #a36b08;
     }
 
+    /* ── My Submissions button ───────────────────────────────────────────── */
+    .my-subs-btn {
+      position: fixed;
+      bottom: 80px;
+      left: 210px;
+      background: var(--surface);
+      border: 1px solid var(--border-solid);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 7px 16px;
+      cursor: pointer;
+      z-index: 160;
+      letter-spacing: 0.3px;
+      transition: all 0.2s var(--ease-out);
+    }
+    .my-subs-btn:hover {
+      background: rgba(0, 97, 160, 0.12);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    /* ── My Submissions modal ────────────────────────────────────────────── */
+    .my-subs-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .my-subs-modal__content {
+      background: var(--surface);
+      border: 1px solid var(--border-solid);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 560px;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+    .my-subs-modal__title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .my-subs-modal__subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .my-subs-modal__lookup {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .my-subs-modal__lookup input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-solid);
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: var(--font);
+    }
+    .my-subs-modal__lookup button {
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: none;
+      background: var(--blue);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .my-subs-modal__close {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 22px;
+      cursor: pointer;
+    }
+    .my-subs-item {
+      background: var(--bg);
+      border: 1px solid var(--border-solid);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .my-subs-item__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .my-subs-item__type {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .my-subs-item__status {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 8px;
+    }
+    .my-subs-item__status--pending { background: #78350f; color: #fbbf24; }
+    .my-subs-item__status--approved { background: #064e3b; color: #34d399; }
+    .my-subs-item__status--rejected { background: #7f1d1d; color: #fca5a5; }
+    .my-subs-item__text {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .my-subs-item__edit {
+      padding: 5px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--blue);
+      background: transparent;
+      color: var(--blue-light);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .my-subs-item__edit:hover {
+      background: var(--blue);
+      color: #fff;
+    }
+    .my-subs-modal[hidden] {
+      display: none;
+    }
+
     /* ── Site proposal modal ─────────────────────────────────────────────── */
     .site-modal {
       position: fixed;
@@ -1416,6 +1560,7 @@
   <button id="add-site-btn" class="add-site-btn" aria-label="Propose a new historical site" title="Add a new site">
     + Add Site
   </button>
+  <button id="my-subs-btn" class="my-subs-btn" aria-label="View and edit your submissions">My Submissions</button>
   <button id="sources-btn" class="sources-btn" aria-label="View sources and references">Sources</button>
   <div id="sources-modal" class="sources-modal" hidden>
     <div class="sources-modal__content">
@@ -1486,6 +1631,20 @@
           <button class="site-modal__submit" id="site-modal-submit" onclick="handleSubmitSite()">Submit Site</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- My Submissions modal -->
+  <div id="my-subs-modal" class="my-subs-modal" hidden>
+    <div class="my-subs-modal__content" style="position:relative">
+      <button class="my-subs-modal__close" onclick="closeMySubsModal()">&times;</button>
+      <div class="my-subs-modal__title">My Submissions</div>
+      <div class="my-subs-modal__subtitle">Enter your email to find and edit your work.</div>
+      <div class="my-subs-modal__lookup">
+        <input id="my-subs-email" type="email" placeholder="your.email@school.edu">
+        <button onclick="lookupMySubmissions()">Look Up</button>
+      </div>
+      <div id="my-subs-list"></div>
     </div>
   </div>
 

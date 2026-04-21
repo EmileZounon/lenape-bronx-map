@@ -1,0 +1,63 @@
+rules_version = '2';
+
+// Lenape Bronx Map
+// Architecture: static site with Firebase Auth for admin access.
+// Public visitors submit (create-only); admins (signed in via Google
+// with an allowlisted email) can read and manage everything.
+//
+// Keep ADMIN_EMAILS in sync with the list in admin.html.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────────────────────────
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'emile.giovannie@gmail.com'
+        ];
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Public submissions (student entries). Anyone can create; only
+    // admins can read, update, or delete.
+    // ──────────────────────────────────────────────────────────────────
+    match /submissions/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+      allow create: if
+        request.resource.data.keys().hasAny(['student_name','studentName','name'])
+        && request.resource.size() < 100000;
+    }
+
+    // Public annotations (map pin notes).
+    match /annotations/{id} {
+      allow read: if isAdmin();
+      allow update, delete: if isAdmin();
+      allow create: if request.resource.size() < 50000;
+    }
+
+    // Write-once backup archives.
+    match /backups_submissions/{id} {
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if false;
+      allow create: if request.resource.size() < 1000000;
+    }
+
+    match /backups_annotations/{id} {
+      allow read: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if false;
+      allow create: if request.resource.size() < 1000000;
+    }
+
+    // Everything else locked.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

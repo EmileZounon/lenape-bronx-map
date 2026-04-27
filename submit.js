@@ -68,7 +68,7 @@ async function uploadPhotos(files, folder) {
   return urls;
 }
 
-// ── Load approved annotations for a settlement ───────────────────────────
+// ── Load annotations: approved are public; pending only show to same school
 async function loadAnnotations(settlementId) {
   const session = getSession();
   const snapshot = await db.collection('annotations')
@@ -78,7 +78,7 @@ async function loadAnnotations(settlementId) {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter(a =>
       a.status === 'approved' ||
-      (session && a.className === session.className && a.school === session.school)
+      (session && a.school === session.school)
     );
 }
 
@@ -108,7 +108,7 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
-// ── Load approved submissions (new site proposals) ───────────────────────
+// ── Load submissions: approved are public; pending only show to same school
 async function loadSubmissions() {
   const session = getSession();
   const snapshot = await db.collection('submissions').get();
@@ -116,7 +116,7 @@ async function loadSubmissions() {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter(s =>
       s.status === 'approved' ||
-      (session && s.className === session.className && s.school === session.school)
+      (session && s.school === session.school)
     );
 }
 

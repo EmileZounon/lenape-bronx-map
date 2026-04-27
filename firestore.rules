@@ -2,8 +2,19 @@ rules_version = '2';
 
 // Lenape Bronx Map
 // Architecture: static site with Firebase Auth for admin access.
-// Public visitors submit (create-only); admins (signed in via Google
-// with an allowlisted email) can read and manage everything.
+// Public visitors can read (so the map can display approved content)
+// and create (student submissions). Students can also edit their own
+// pending work (typo fixes, etc.) — but once a submission is approved,
+// it locks. Only admins can approve, reject, or delete.
+//
+// Why public read: the map page is unauthenticated; without it, students
+// and visitors see an empty map. Submissions are only displayed if their
+// status is 'approved' (filtered client-side in submit.js), and student
+// names/emails are content the students themselves chose to publish.
+//
+// Why public update (pending only): students should be able to fix
+// mistakes before review. Once status == 'approved', updates are
+// locked to admins — preventing post-approval rewrites.
 //
 // Keep ADMIN_EMAILS in sync with the list in admin.html.
 
@@ -21,38 +32,55 @@ service cloud.firestore {
         ];
     }
 
-    // ──────────────────────────────────────────────────────────────────
-    // Public submissions (student entries). Anyone can create; only
-    // admins can read, update, or delete.
-    // ──────────────────────────────────────────────────────────────────
-    match /submissions/{id} {
-      allow read: if isAdmin();
-      allow update, delete: if isAdmin();
-      allow create: if
-        request.resource.data.keys().hasAny(['student_name','studentName','name'])
+    // True if the existing doc is still pending and the update keeps it
+    // pending (students can't self-approve by editing). Size guarded.
+    function isPendingEditOfAnnotation() {
+      return resource.data.status == 'pending'
+        && request.resource.data.status == 'pending'
+        && request.resource.size() < 50000;
+    }
+
+    function isPendingEditOfSubmission() {
+      return resource.data.status == 'pending'
+        && request.resource.data.status == 'pending'
         && request.resource.size() < 100000;
     }
 
-    // Public annotations (map pin notes).
-    match /annotations/{id} {
-      allow read: if isAdmin();
-      allow update, delete: if isAdmin();
-      allow create: if request.resource.size() < 50000;
+    // ──────────────────────────────────────────────────────────────────
+    // Public submissions (student-proposed new sites). Anyone can read
+    // (map display) and create. Students can edit while pending.
+    // Only admins can approve, reject, or delete.
+    // ──────────────────────────────────────────────────────────────────
+    match /submissions/{id} {
+      allow read: if true;
+      allow create: if
+        request.resource.data.keys().hasAny(['student_name','studentName','name'])
+        && request.resource.size() < 100000;
+      allow update: if isAdmin() || isPendingEditOfSubmission();
+      allow delete: if isAdmin();
     }
 
-    // Write-once backup archives.
+    // Public annotations (notes attached to existing settlements).
+    match /annotations/{id} {
+      allow read: if true;
+      allow create: if request.resource.size() < 50000;
+      allow update: if isAdmin() || isPendingEditOfAnnotation();
+      allow delete: if isAdmin();
+    }
+
+    // Write-once backup archives. Admin-only read; nobody can update.
     match /backups_submissions/{id} {
       allow read: if isAdmin();
-      allow delete: if isAdmin();
-      allow update: if false;
       allow create: if request.resource.size() < 1000000;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     match /backups_annotations/{id} {
       allow read: if isAdmin();
-      allow delete: if isAdmin();
-      allow update: if false;
       allow create: if request.resource.size() < 1000000;
+      allow update: if false;
+      allow delete: if isAdmin();
     }
 
     // Everything else locked.

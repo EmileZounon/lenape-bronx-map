@@ -24,6 +24,69 @@ function setSession(data) {
   localStorage.setItem('lenape_session', JSON.stringify(data));
 }
 
+// ── School name fuzzy match ─────────────────────────────────────────────
+// 1. Normalizes (lowercase, strips suffixes / punctuation).
+// 2. Checks alias groups — schools that share a community (e.g., Macaulay
+//    Honors students AT Lehman are part of both, so "Macaulay" and
+//    "Lehman" map to the same group).
+// 3. Falls back to prefix match ("Lehman" / "Lehman College") and
+//    Levenshtein distance ≤ 2 for typos ("Macaulay" / "Macauley").
+
+// Each inner array is a group of names that should be treated as equivalent.
+// First entry of the group is the canonical id used internally.
+const SCHOOL_ALIAS_GROUPS = [
+  // Macaulay Honors students at Lehman College — visible to each other.
+  ['lehman', 'macaulay', 'macauley']
+];
+
+function normalizeSchool(s) {
+  return (s || '')
+    .toLowerCase()
+    .replace(/\b(college|university|school|the|honors|program)\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function schoolGroupId(normalized) {
+  if (!normalized) return null;
+  for (const group of SCHOOL_ALIAS_GROUPS) {
+    for (const alias of group) {
+      if (
+        normalized === alias ||
+        normalized.startsWith(alias) ||
+        alias.startsWith(normalized)
+      ) {
+        return group[0];
+      }
+    }
+  }
+  return null;
+}
+
+function schoolsMatch(a, b) {
+  const nA = normalizeSchool(a);
+  const nB = normalizeSchool(b);
+  if (!nA || !nB) return false;
+  if (nA === nB) return true;
+  if (nA.startsWith(nB) || nB.startsWith(nA)) return true;
+  // Alias groups (e.g., Macaulay + Lehman = same community)
+  const gA = schoolGroupId(nA);
+  const gB = schoolGroupId(nB);
+  if (gA && gA === gB) return true;
+  // Levenshtein distance ≤ 2 for typos in 5+ char names
+  if (nA.length < 5 || nB.length < 5) return false;
+  const m = nA.length, n = nB.length;
+  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[0][i] = i;
+  for (let j = 0; j <= n; j++) dp[j][0] = j;
+  for (let j = 1; j <= n; j++) {
+    for (let i = 1; i <= m; i++) {
+      const cost = nA[i - 1] === nB[j - 1] ? 0 : 1;
+      dp[j][i] = Math.min(dp[j - 1][i] + 1, dp[j][i - 1] + 1, dp[j - 1][i - 1] + cost);
+    }
+  }
+  return dp[n][m] <= 2;
+}
+
 // ── Security helpers ─────────────────────────────────────────────────────
 const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
 const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
@@ -78,7 +141,7 @@ async function loadAnnotations(settlementId) {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter(a =>
       a.status === 'approved' ||
-      (session && a.school === session.school)
+      (session && schoolsMatch(a.school, session.school))
     );
 }
 
@@ -116,7 +179,7 @@ async function loadSubmissions() {
     .map(doc => ({ id: doc.id, ...doc.data() }))
     .filter(s =>
       s.status === 'approved' ||
-      (session && s.school === session.school)
+      (session && schoolsMatch(s.school, session.school))
     );
 }
 

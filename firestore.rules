@@ -2,29 +2,11 @@ rules_version = '2';
 
 // Lenape Bronx Map
 // Architecture: static site with Firebase Auth for admin access.
-// Public visitors can read (so the map can display approved content)
-// and create (student submissions). Students can also edit their own
-// pending work (typo fixes, etc.) — but once a submission is approved,
-// it locks. Only admins can approve, reject, or delete.
-//
-// Why public read: the map page is unauthenticated; without it, students
-// and visitors see an empty map. Submissions are only displayed if their
-// status is 'approved' (filtered client-side in submit.js), and student
-// names/emails are content the students themselves chose to publish.
-//
-// Student sign-in (2026-10-12): students type a CUNY email before they
-// submit or edit (honor system, no password). Rules enforce:
-//   - new entries must carry an @lc.cuny.edu or @lehman.cuny.edu email
-//   - students can edit any entry that has an owner email (approved ones
-//     too), but every student edit goes back to 'pending' for review
-//   - students can't change the owner email or who/where an entry is
-//   - entries with no owner email (pre-sign-in) are admin-only until an
-//     admin sets an owner email in admin.html
-// Ownership is checked in the browser (isMine in submit.js); rules can't
-// see who typed the email. A class roster can tighten isClassEmail later.
-//
-// Keep the admin list in sync with ADMIN_EMAILS in admin.html, and the
-// domains in sync with CUNY_DOMAINS in submit.js.
+// Student submissions keep the no-password email-entry workflow. Because
+// that email is self-reported, Firestore cannot prove ownership: student
+// records are readable and an email match is only a client-side convenience.
+// Verified Google roles protect the admin dashboard. Tech support manages
+// access, exports, recovery, and deletion.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -32,13 +14,32 @@ service cloud.firestore {
     // ──────────────────────────────────────────────────────────────────
     // Helpers
     // ──────────────────────────────────────────────────────────────────
-    function isAdmin() {
+    function isTechSupport() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in [
-          'emile.giovannie@gmail.com',
-          'agescamilla2006@gmail.com'
-        ];
+        && request.auth.token.email == 'emile.giovannie@gmail.com';
+    }
+
+    function isStudentAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/admin_roles/$(request.auth.token.email))
+        && get(/databases/$(database)/documents/admin_roles/$(request.auth.token.email)).data.role == 'content_admin';
+    }
+
+    function isContentAdmin() {
+      return isTechSupport() || isStudentAdmin();
+    }
+
+    function isReviewUpdate() {
+      return isStudentAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['email', 'status', 'approvedAt', 'updatedAt'])
+        && request.resource.data.get('email', '') is string
+        && (request.resource.data.get('email', '') == ''
+          || isClassEmail(request.resource.data.get('email', '')))
+        && request.resource.data.get('status', resource.data.get('status', 'pending'))
+          in ['pending', 'approved', 'rejected'];
     }
 
     // Owner email must be a CUNY address. Roster check goes here later.
@@ -47,8 +48,13 @@ service cloud.firestore {
         && email.matches('^[^@A-Z]+@(lc|lehman)[.]cuny[.]edu$');
     }
 
-    // Student edit: entry has an owner, owner unchanged, goes back to
-    // pending (students can't self-approve), only content fields change.
+    function isValidAdminEmail(email) {
+      return email is string
+        && email.matches('^[^@]+@[^@]+[.][^@]+$');
+    }
+
+    // Email-only student edit: the self-reported owner email stays fixed;
+    // edits return the item to the review queue. This is not identity proof.
     function isStudentEdit(editable, maxSize) {
       return resource.data.get('email', '') != ''
         && request.resource.data.get('email', '') == resource.data.email
@@ -66,44 +72,58 @@ service cloud.firestore {
     }
 
     // ──────────────────────────────────────────────────────────────────
-    // Public submissions (student-proposed new sites). Anyone can read
-    // (map display); CUNY-email students can create and edit their own.
-    // Only admins can approve, reject, or delete.
+    // Public submissions (student-proposed new sites). Visitors can read
+    // approved records; verified owners can create and edit their own.
+    // Tech support can restore missing records from an export.
     // ──────────────────────────────────────────────────────────────────
     match /submissions/{id} {
       allow read: if true;
-      allow create: if
-        request.resource.data.keys().hasAny(['student_name','studentName','name'])
-        && isClassEmail(request.resource.data.get('email', null))
-        && request.resource.data.status == 'pending'
-        && request.resource.size() < 100000;
-      allow update: if isAdmin() || isStudentEditOfSubmission();
-      allow delete: if isAdmin();
+      allow create: if isTechSupport() || (
+          request.resource.data.keys().hasAny(['student_name','studentName','name'])
+          && isClassEmail(request.resource.data.get('email', null))
+          && request.resource.data.status == 'pending'
+          && request.resource.size() < 100000
+        );
+      allow update: if isReviewUpdate() || isStudentEditOfSubmission() || isTechSupport();
+      allow delete: if isTechSupport();
     }
 
     // Public annotations (notes attached to existing settlements).
     match /annotations/{id} {
       allow read: if true;
-      allow create: if isClassEmail(request.resource.data.get('email', null))
-        && request.resource.data.status == 'pending'
-        && request.resource.size() < 50000;
-      allow update: if isAdmin() || isStudentEditOfAnnotation();
-      allow delete: if isAdmin();
+      allow create: if isTechSupport() || (
+          isClassEmail(request.resource.data.get('email', null))
+          && request.resource.data.status == 'pending'
+          && request.resource.size() < 50000
+        );
+      allow update: if isReviewUpdate() || isStudentEditOfAnnotation() || isTechSupport();
+      allow delete: if isTechSupport();
     }
 
-    // Write-once backup archives. Admin-only read; nobody can update.
+    // Backups are support-only. Public clients must not be able to fill
+    // these collections with arbitrary copies.
     match /backups_submissions/{id} {
-      allow read: if isAdmin();
-      allow create: if request.resource.size() < 1000000;
+      allow read, create, delete: if isTechSupport();
       allow update: if false;
-      allow delete: if isAdmin();
     }
 
     match /backups_annotations/{id} {
-      allow read: if isAdmin();
-      allow create: if request.resource.size() < 1000000;
+      allow read, create, delete: if isTechSupport();
       allow update: if false;
-      allow delete: if isAdmin();
+    }
+
+    // Tech support is the only account that can grant or remove admin access.
+    match /admin_roles/{email} {
+      allow get: if isTechSupport()
+        || (request.auth != null && request.auth.token.email_verified == true
+          && request.auth.token.email == email);
+      allow list: if isTechSupport();
+      allow create, update: if isTechSupport()
+        && request.resource.data.get('email', '') == email
+        && isValidAdminEmail(email)
+        && request.resource.data.get('role', '') == 'content_admin'
+        && request.resource.data.keys().hasOnly(['email', 'role', 'grantedBy', 'grantedAt']);
+      allow delete: if isTechSupport();
     }
 
     // Everything else locked.

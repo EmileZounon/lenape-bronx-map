@@ -291,6 +291,16 @@
       line-height: 1.5;
     }
 
+    .sidebar__guide {
+      margin: 8px 0 14px;
+      padding: 9px 11px;
+      border-left: 2px solid var(--green);
+      background: rgba(132, 189, 0, 0.07);
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
     /* Search */
     .sidebar__search {
       width: 100%;
@@ -406,6 +416,7 @@
     }
 
     .settlement-item {
+      width: 100%;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -416,6 +427,9 @@
       border-radius: 2px 8px 8px 2px;
       cursor: pointer;
       transition: all 0.2s var(--ease-out);
+      color: inherit;
+      font: inherit;
+      text-align: left;
     }
 
     .settlement-item:hover {
@@ -432,6 +446,12 @@
     .settlement-item__info {
       flex: 1;
       min-width: 0;
+    }
+
+    .settlement-item__info,
+    .settlement-item__name,
+    .settlement-item__location {
+      display: block;
     }
 
     .settlement-item__name {
@@ -1475,7 +1495,7 @@
 </head>
 <body>
   <aside id="sidebar" class="sidebar sidebar--collapsed">
-    <button id="sidebar-toggle" class="sidebar__toggle" aria-label="Toggle sidebar">
+    <button id="sidebar-toggle" class="sidebar__toggle" aria-label="Open site list" aria-expanded="false">
       <span id="sidebar-toggle-icon">&#9776;</span>
     </button>
     <div class="sidebar__content">
@@ -1487,13 +1507,14 @@
       <h1 class="sidebar__title">Pre-Colonial Lenape<br>Settlements of the Bronx</h1>
       <div class="sidebar__title-rule"></div>
       <p class="sidebar__subtitle">Indigenous geography before European contact (pre-1609)</p>
+      <p class="sidebar__guide">Choose a place from the list or map. Turn on layers to explore routes, waterways, ecology, and student sites.</p>
 
       <input id="search" type="search" placeholder="Search by name or location..." class="sidebar__search" aria-label="Search settlements">
 
-      <div id="territory-filter" class="sidebar__filter">
-        <button data-territory="all" class="filter-btn active">All</button>
-        <button data-territory="Weckquaesgeek" class="filter-btn filter-btn--weck">Weckquaesgeek</button>
-        <button data-territory="Siwanoy" class="filter-btn filter-btn--siw">Siwanoy</button>
+      <div id="territory-filter" class="sidebar__filter" role="group" aria-label="Filter places by territory">
+        <button data-territory="all" class="filter-btn active" aria-pressed="true">All</button>
+        <button data-territory="Weckquaesgeek" class="filter-btn filter-btn--weck" aria-pressed="false">Weckquaesgeek</button>
+        <button data-territory="Siwanoy" class="filter-btn filter-btn--siw" aria-pressed="false">Siwanoy</button>
       </div>
 
       <div id="stats" class="sidebar__stats"></div>
@@ -1655,12 +1676,12 @@
   <!-- Student sign-in modal (shown only when submitting or editing) -->
   <div id="signin-modal" class="site-modal" hidden>
     <div class="site-modal__content">
-      <div class="site-modal__title">Sign in to contribute</div>
-      <div class="site-modal__subtitle">Use your CUNY email (@lc.cuny.edu or @lehman.cuny.edu). You only do this once on this device.</div>
+      <div class="site-modal__title">Enter your student details</div>
+      <div class="site-modal__subtitle">Use your CUNY student email. We use it to find your submissions on this device; the email itself is not verified.</div>
       <div class="site-modal__form">
         <input id="si-name" type="text" placeholder="Your name *" maxlength="80" autocomplete="name">
         <input id="si-school" type="text" placeholder="School *" maxlength="80" value="Lehman College">
-        <input id="si-email" type="email" placeholder="yourname@lc.cuny.edu *" maxlength="120" autocomplete="email">
+        <input id="si-email" type="email" placeholder="yourname@lc.cuny.edu" maxlength="120" autocomplete="email">
         <div id="si-error" style="color:#ef4444;font-size:12px;min-height:16px"></div>
         <div class="site-modal__actions">
           <button class="site-modal__cancel" onclick="closeSignInModal()">Cancel</button>
@@ -2155,7 +2176,7 @@
 
     // ── Summary statistics ───────────────────────────────────────────────
     const STATISTICS = [
-      { value: '14+', label: 'Documented Sites' },
+      { value: SETTLEMENTS.length, label: 'Places in this guide' },
       { value: '6,000+', label: 'Years of Habitation' },
       { value: '~1,800', label: 'Siwanoy Pre-Contact' },
       { value: '1782', label: 'Last Settlement' },
@@ -2225,21 +2246,21 @@
         return matchesTerritory && matchesSearch;
       });
 
-      container.innerHTML = filtered.map(site => {
+      container.innerHTML = filtered.length ? filtered.map(site => {
         const territoryClass = site.territory === 'Weckquaesgeek' ? 'weck' : 'siw';
         return `
-          <div class="settlement-item" data-id="${site.id}" onclick="selectSettlement(${site.id})">
+          <button type="button" class="settlement-item" data-id="${site.id}" aria-label="Open ${site.name}, ${site.modernLocation}" onclick="selectSettlement(${site.id})">
             <span class="settlement-item__icon">${site.icon}</span>
-            <div class="settlement-item__info">
-              <div class="settlement-item__name">${site.name}</div>
-              <div class="settlement-item__location">${site.modernLocation}</div>
-            </div>
+            <span class="settlement-item__info">
+              <span class="settlement-item__name">${site.name}</span>
+              <span class="settlement-item__location">${site.modernLocation}</span>
+            </span>
             <span class="settlement-item__territory settlement-item__territory--${territoryClass}">
               ${site.territory === 'Weckquaesgeek' ? 'Weck.' : 'Siw.'}
             </span>
-          </div>
+          </button>
         `;
-      }).join('');
+      }).join('') : '<p class="sidebar__guide">No places match your search. Try another name or location.</p>';
 
       // Also update marker visibility
       settlementMarkers.forEach((marker, i) => {
@@ -2657,7 +2678,7 @@
       const session = getSession();
       document.getElementById('si-name').value = session?.studentName || '';
       if (session?.school) document.getElementById('si-school').value = session.school;
-      document.getElementById('si-email').value = '';
+      document.getElementById('si-email').value = session?.email || '';
       document.getElementById('si-error').textContent = '';
       document.getElementById('signin-modal').hidden = false;
       document.getElementById('si-name').focus();
@@ -2705,7 +2726,7 @@
 
     function updateSignInButton() {
       const btn = document.getElementById('my-subs-btn');
-      if (btn) btn.textContent = isSignedIn() ? 'My Submissions' : 'Sign in';
+      if (btn) btn.textContent = 'My Submissions';
     }
 
     // ── My Submissions ────────────────────────────────────────────────────
@@ -2713,7 +2734,7 @@
       if (!isSignedIn()) { requireSignIn(openMySubsModal); return; }
       const session = getSession();
       document.getElementById('my-subs-who').innerHTML =
-        `Signed in as ${escapeHtml(session.email)} · <a href="#" onclick="signOutStudent();return false;" style="color:var(--accent)">Sign out</a>`;
+        `Using ${escapeHtml(session.email)} · <a href="#" onclick="signOutStudent();return false;" style="color:var(--accent)">Change email</a>`;
       document.getElementById('my-subs-modal').hidden = false;
       lookupMySubmissions();
     }
@@ -3148,14 +3169,18 @@
       document.getElementById('sidebar-toggle').addEventListener('click', () => {
         const sidebar = document.getElementById('sidebar');
         const icon = document.getElementById('sidebar-toggle-icon');
-        sidebar.classList.toggle('sidebar--collapsed');
-        icon.innerHTML = sidebar.classList.contains('sidebar--collapsed') ? '&#9776;' : '&times;';
+        const collapsed = sidebar.classList.toggle('sidebar--collapsed');
+        icon.innerHTML = collapsed ? '&#9776;' : '&times;';
+        document.getElementById('sidebar-toggle').setAttribute('aria-expanded', String(!collapsed));
+        document.getElementById('sidebar-toggle').setAttribute('aria-label', collapsed ? 'Open site list' : 'Close site list');
       });
 
       // Mobile sidebar close button
       document.getElementById('sidebar-mobile-close').addEventListener('click', () => {
         document.getElementById('sidebar').classList.add('sidebar--collapsed');
         document.getElementById('sidebar-toggle-icon').innerHTML = '&#9776;';
+        document.getElementById('sidebar-toggle').setAttribute('aria-expanded', 'false');
+        document.getElementById('sidebar-toggle').setAttribute('aria-label', 'Open site list');
       });
 
       // Search
@@ -3166,8 +3191,12 @@
       // Territory filter
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('.filter-btn').forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-pressed', 'false');
+          });
           btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
           currentTerritory = btn.dataset.territory;
           renderSettlementList(document.getElementById('search').value);
         });
@@ -3227,53 +3256,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-  <script src="submit.js?v=8"></script>
-
-  <!-- Admin export (visible only with ?admin in URL) -->
-  <div id="admin-export" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;">
-    <button onclick="exportAllData()" style="background:#1e40af;color:#fff;border:none;padding:10px 18px;border-radius:8px;cursor:pointer;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-      ⬇ Export All Data
-    </button>
-  </div>
-  <script>
-    // Show export button only for admin
-    if (new URLSearchParams(window.location.search).has('admin')) {
-      document.getElementById('admin-export').style.display = 'block';
-    }
-
-    async function exportAllData() {
-      const btn = document.querySelector('#admin-export button');
-      btn.disabled = true;
-      btn.textContent = 'Exporting...';
-      try {
-        const [annotations, submissions, backupAnnotations, backupSubmissions] = await Promise.all([
-          db.collection('annotations').get(),
-          db.collection('submissions').get(),
-          db.collection('backups_annotations').get().catch(() => ({ docs: [] })),
-          db.collection('backups_submissions').get().catch(() => ({ docs: [] })),
-        ]);
-        const data = {
-          exportedAt: new Date().toISOString(),
-          annotations: annotations.docs.map(d => ({ id: d.id, ...d.data() })),
-          submissions: submissions.docs.map(d => ({ id: d.id, ...d.data() })),
-          backups_annotations: backupAnnotations.docs.map(d => ({ id: d.id, ...d.data() })),
-          backups_submissions: backupSubmissions.docs.map(d => ({ id: d.id, ...d.data() })),
-        };
-        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `lenape-map-export-${new Date().toISOString().slice(0,10)}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        console.error('Export failed:', err);
-        alert('Export failed. Check console for details.');
-      }
-      btn.disabled = false;
-      btn.textContent = '⬇ Export All Data';
-    }
-  </script>
+  <script src="submit.js?v=10"></script>
 
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&callback=initMap&libraries=marker&v=weekly"></script>
 </body>

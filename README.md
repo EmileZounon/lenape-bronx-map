@@ -58,6 +58,8 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 This project is designed for deployment via **GitHub Pages** from the `main` branch root (`/`).
 
+The review dashboard is at `/admin.html`. Student admins review submissions and assign ownership; Tech Support manages access, exports, recovery, and deletion. Student contributions use an email-only flow. See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for role boundaries and the paired site/Firestore deployment steps.
+
 ## Data Sources & Credits
 
 - **Bolton, Reginald Pelham.** *Indian Paths in the Great Metropolis.* Museum of the American Indian, Heye Foundation, 1922.

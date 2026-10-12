@@ -28,11 +28,9 @@ function clearSession() {
   localStorage.removeItem('lenape_session');
 }
 
-// ── Student sign-in (CUNY email, honor system) ──────────────────────────
-// Students "sign in" by typing their CUNY email; nothing is sent to their
-// inbox. The email decides which entries they can edit. firestore.rules
-// enforces the same domain list on create, and locks the owner email.
-// Keep CUNY_DOMAINS in sync with isClassEmail() in firestore.rules.
+// ── Student identity (email entered by the student) ─────────────────────
+// This keeps the familiar no-password workflow. The email is not verified,
+// so it is a convenience for finding submissions, not proof of ownership.
 const CUNY_DOMAINS = ['lc.cuny.edu', 'lehman.cuny.edu'];
 
 function normalizeEmail(email) {
@@ -55,72 +53,9 @@ function isSignedIn() {
 // email (made before sign-in existed) belong to nobody until an admin
 // sets an owner email in admin.html.
 function isMine(entry) {
-  const s = getSession();
-  if (!s || !entry || !entry.email) return false;
-  return normalizeEmail(entry.email) === normalizeEmail(s.email);
-}
-
-// ── School name fuzzy match ─────────────────────────────────────────────
-// 1. Normalizes (lowercase, strips suffixes / punctuation).
-// 2. Checks alias groups — schools that share a community (e.g., Macaulay
-//    Honors students AT Lehman are part of both, so "Macaulay" and
-//    "Lehman" map to the same group).
-// 3. Falls back to prefix match ("Lehman" / "Lehman College") and
-//    Levenshtein distance ≤ 2 for typos ("Macaulay" / "Macauley").
-
-// Each inner array is a group of names that should be treated as equivalent.
-// First entry of the group is the canonical id used internally.
-const SCHOOL_ALIAS_GROUPS = [
-  // Macaulay Honors students at Lehman College — visible to each other.
-  ['lehman', 'macaulay', 'macauley']
-];
-
-function normalizeSchool(s) {
-  return (s || '')
-    .toLowerCase()
-    .replace(/\b(college|university|school|the|honors|program)\b/g, '')
-    .replace(/[^a-z0-9]/g, '');
-}
-
-function schoolGroupId(normalized) {
-  if (!normalized) return null;
-  for (const group of SCHOOL_ALIAS_GROUPS) {
-    for (const alias of group) {
-      if (
-        normalized === alias ||
-        normalized.startsWith(alias) ||
-        alias.startsWith(normalized)
-      ) {
-        return group[0];
-      }
-    }
-  }
-  return null;
-}
-
-function schoolsMatch(a, b) {
-  const nA = normalizeSchool(a);
-  const nB = normalizeSchool(b);
-  if (!nA || !nB) return false;
-  if (nA === nB) return true;
-  if (nA.startsWith(nB) || nB.startsWith(nA)) return true;
-  // Alias groups (e.g., Macaulay + Lehman = same community)
-  const gA = schoolGroupId(nA);
-  const gB = schoolGroupId(nB);
-  if (gA && gA === gB) return true;
-  // Levenshtein distance ≤ 2 for typos in 5+ char names
-  if (nA.length < 5 || nB.length < 5) return false;
-  const m = nA.length, n = nB.length;
-  const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[0][i] = i;
-  for (let j = 0; j <= n; j++) dp[j][0] = j;
-  for (let j = 1; j <= n; j++) {
-    for (let i = 1; i <= m; i++) {
-      const cost = nA[i - 1] === nB[j - 1] ? 0 : 1;
-      dp[j][i] = Math.min(dp[j - 1][i] + 1, dp[j][i - 1] + 1, dp[j - 1][i - 1] + cost);
-    }
-  }
-  return dp[n][m] <= 2;
+  const session = getSession();
+  if (!session || !entry || !entry.email) return false;
+  return normalizeEmail(entry.email) === normalizeEmail(session.email);
 }
 
 // ── Security helpers ─────────────────────────────────────────────────────
@@ -167,7 +102,7 @@ async function uploadPhotos(files, folder) {
   return urls;
 }
 
-// ── Load annotations: approved are public; pending only show to same school
+// ── Load approved notes and notes matching the entered student email
 async function loadAnnotations(settlementId) {
   const session = getSession();
   const snapshot = await db.collection('annotations')
@@ -175,10 +110,7 @@ async function loadAnnotations(settlementId) {
     .get();
   return snapshot.docs
     .map(doc => ({ id: doc.id, ...doc.data() }))
-    .filter(a =>
-      a.status === 'approved' ||
-      (session && schoolsMatch(a.school, session.school))
-    );
+    .filter(a => a.status === 'approved' || (session && isMine(a)));
 }
 
 // ── Submit an annotation ─────────────────────────────────────────────────
@@ -197,26 +129,17 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  const docRef = await db.collection('annotations').add(data);
-  // Backup: write a copy to backups collection (fire-and-forget)
-  db.collection('backups_annotations').add({
-    ...data,
-    originalId: docRef.id,
-    backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(err => console.error('Backup annotation failed:', err));
+  await db.collection('annotations').add(data);
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
-// ── Load submissions: approved are public; pending only show to same school
+// ── Load approved sites and sites matching the entered student email
 async function loadSubmissions() {
   const session = getSession();
   const snapshot = await db.collection('submissions').get();
   return snapshot.docs
     .map(doc => ({ id: doc.id, ...doc.data() }))
-    .filter(s =>
-      s.status === 'approved' ||
-      (session && schoolsMatch(s.school, session.school))
-    );
+    .filter(s => s.status === 'approved' || (session && isMine(s)));
 }
 
 // ── Submit a new site proposal ───────────────────────────────────────────
@@ -237,13 +160,7 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  const docRef = await db.collection('submissions').add(data);
-  // Backup: write a copy to backups collection (fire-and-forget)
-  db.collection('backups_submissions').add({
-    ...data,
-    originalId: docRef.id,
-    backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(err => console.error('Backup submission failed:', err));
+  await db.collection('submissions').add(data);
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
@@ -284,6 +201,10 @@ async function updateSiteProposal(docId, { name, description, source, videoUrl =
 // ── Load all submissions owned by an email ───────────────────────────────
 async function loadSubmissionsByEmail(email) {
   const e = normalizeEmail(email);
+  const session = getSession();
+  if (!session || !isCunyEmail(e) || normalizeEmail(session.email) !== e) {
+    throw new Error('Enter the same CUNY email you used when you submitted this work.');
+  }
   const [annByEmail, subByEmail] = await Promise.all([
     db.collection('annotations').where('email', '==', e).get(),
     db.collection('submissions').where('email', '==', e).get()

@@ -1,43 +1,56 @@
 # Lenape Bronx Map Admin Guide
 
+## How publishing works
+
+Student work goes live the moment a student submits it. There is no approval queue. Admins check the dashboard from time to time and take down anything that should not be on the map.
+
+- **Hide from map** takes an entry off the public map but keeps it. **Show on map** puts it back.
+- **Delete** (Tech Support only) removes it for good. A restore will never bring a deleted entry back.
+
+The public can only read entries that are on the map. Hidden entries are visible to admins only.
+
 ## Student admin
 
-Sign in at `/admin.html` with the Google account that tech support added.
+Built-in student admin: `agescamilla2006@gmail.com` (Alexa). Tech Support can add more in the Tech support panel.
 
-1. Leave the review filter on **Needs review** to see new notes and site proposals.
-2. Open sources and check the location or settlement details before deciding.
-3. Use **Set owner** when an older submission needs to be linked to its student. Use a verified `@lc.cuny.edu` or `@lehman.cuny.edu` address.
-4. Choose **Approve** to publish a submission or **Reject** to keep it off the public map. Use **Return to review** if an approved or rejected item needs another look.
-5. Search by student, school, site, or note. Use the status menu to find older decisions.
+Sign in at `/admin.html` with your Google account.
 
-Student admins can review records and assign ownership. They cannot grant admin access, export backups, or delete records.
+1. The list opens on **Everything (newest first)**. Use the menu to see only **On the map** or **Hidden**, and the search box to find a student, school, site, or note.
+2. Check sources and details. Use **Hide from map** for anything that should not be public.
+3. Use **Set owner** to link an older entry to its student. Use a `@lc.cuny.edu` or `@lehman.cuny.edu` address. After that, the student can edit it.
+4. An **Edited by student** badge means the student changed the entry after posting it. Edits go live right away, so give those a second look.
+
+Student admins cannot delete entries, change admin access, or export and restore data.
 
 ## Tech support
 
-Sign in with the designated support Google account. The **Tech support** panel lets you:
+Sign in with `emile.giovannie@gmail.com`. You can do everything a student admin can, plus the Tech support panel:
 
-- Add a student admin using their Lehman/CUNY email.
-- Remove a student's admin access when their role ends.
-- Download a JSON copy of submissions and existing backup records before a handoff or recovery task.
-- Restore missing records from a downloaded JSON file. Existing records are skipped and never overwritten; older saved backup records can also be recovered by their original IDs.
-- Delete a record when necessary. Deletion is permanent from this page.
+- Add or remove student admins.
+- **Download all data** as a JSON file. Keep it somewhere access-controlled.
+- **Restore missing records** from a downloaded JSON file. Restore never overwrites an entry that exists, and it always skips entries that were deleted on purpose. The checkbox for automatic backup copies is for disaster recovery only.
+- **Delete** an entry. Every delete is recorded, so a later restore will not bring it back.
 
-Keep a copy of the downloaded data somewhere access-controlled. Restore writes only missing records and does not overwrite the current version of a record.
+Automatic backups: when a student submits, their browser also saves one copy to a backup collection. Only Tech Support can read those copies, and they are included in **Download all data**.
 
-## Student and public access
+## Student access
 
-Students enter a Lehman/CUNY email to submit work, find matching submissions, and edit them. No password or Google sign-in is required. Edits return to **Needs review**.
+Students type their name, school, and CUNY email once per device. No password or Google sign-in. They can then add notes and sites, find their work under **My Submissions**, and edit their own entries. Edits stay on the map.
 
-The entered email is not verified. Firestore must allow reads for this no-password workflow, so do not treat pending submissions as private; someone who knows an owner's email can claim to be that student and edit their work. The public map displays approved work to visitors, but the underlying records are readable from the database.
+Limits to know:
+
+- The email is not verified. Someone who types a classmate's email could edit that classmate's work. A class roster check can tighten this later.
+- Anything a student submits is public right away, until an admin hides it.
 
 ## Publishing changes
 
-The public site is hosted by GitHub Pages. Firestore permissions are deployed separately from this page. Publish the updated site and Firestore rules together so the email-only submission flow and admin roles stay in sync.
+The public site is hosted by GitHub Pages. Firestore rules are deployed separately. Publish both together, or the map and the database will disagree (for example, student edits failing).
 
-From the project folder, deploy the rules with:
+From the project folder:
 
 ```sh
-firebase deploy --only firestore:rules
+git push origin main
+firebase deploy --only firestore:rules --project lenape-bronx-map
 ```
 
-After the new admin page and rules are live, the support account should add the student admin in the **Tech support** panel. The student can then sign in at `/admin.html`.
+Bump `submit.js?v=N` in `index.html` whenever `submit.js` changes, so browsers load the new version.

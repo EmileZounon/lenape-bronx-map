@@ -102,15 +102,28 @@ async function uploadPhotos(files, folder) {
   return urls;
 }
 
-// ── Load approved notes and notes matching the entered student email
+// ── Live records only ───────────────────────────────────────────────────
+// firestore.rules lets the public read only status == 'approved' (live)
+// records, and rules are not filters: every public query must ask for
+// live records explicitly or the whole query is denied.
+const LIVE = 'approved';
+
+// Write-once backup copy, keyed by the record id (rules require that).
+function backupRecord(collection, id, data) {
+  db.collection('backups_' + collection).doc(id).set({
+    ...data,
+    originalId: id,
+    backedUpAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(err => console.error('Backup failed:', err));
+}
+
+// ── Load live notes for one settlement ──────────────────────────────────
 async function loadAnnotations(settlementId) {
-  const session = getSession();
   const snapshot = await db.collection('annotations')
     .where('settlementId', '==', settlementId)
+    .where('status', '==', LIVE)
     .get();
-  return snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .filter(a => a.status === 'approved' || (session && isMine(a)));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 // ── Submit an annotation ─────────────────────────────────────────────────
@@ -126,20 +139,18 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
     sources: source.trim() ? [source.trim()] : [],
     photos: photoUrls,
     videoUrl: videoUrl.trim(),
-    status: 'pending',
+    status: LIVE,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection('annotations').add(data);
+  const docRef = await db.collection('annotations').add(data);
+  backupRecord('annotations', docRef.id, data);
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
-// ── Load approved sites and sites matching the entered student email
+// ── Load live student sites ─────────────────────────────────────────────
 async function loadSubmissions() {
-  const session = getSession();
-  const snapshot = await db.collection('submissions').get();
-  return snapshot.docs
-    .map(doc => ({ id: doc.id, ...doc.data() }))
-    .filter(s => s.status === 'approved' || (session && isMine(s)));
+  const snapshot = await db.collection('submissions').where('status', '==', LIVE).get();
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 // ── Submit a new site proposal ───────────────────────────────────────────
@@ -157,22 +168,22 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     className: className.trim(),
     school: school.trim(),
     email: normalizeEmail(email),
-    status: 'pending',
+    status: LIVE,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  await db.collection('submissions').add(data);
+  const docRef = await db.collection('submissions').add(data);
+  backupRecord('submissions', docRef.id, data);
   setSession({ studentName: data.studentName, className: data.className, school: data.school, email: data.email });
 }
 
 // ── Update an existing annotation ───────────────────────────────────────
-// Any edit, including to approved work, goes back to 'pending' for review.
+// Edits publish right away; status and owner never change here.
 async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [] }) {
   const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'annotations') : [];
   const updates = {
     note: note.trim(),
     sources: source.trim() ? [source.trim()] : [],
     videoUrl: videoUrl.trim(),
-    status: 'pending',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (newPhotoUrls.length > 0) {
@@ -189,7 +200,6 @@ async function updateSiteProposal(docId, { name, description, source, videoUrl =
     description: description.trim(),
     sources: source.trim() ? [source.trim()] : [],
     videoUrl: videoUrl.trim(),
-    status: 'pending',
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (newPhotoUrls.length > 0) {
@@ -206,8 +216,8 @@ async function loadSubmissionsByEmail(email) {
     throw new Error('Enter the same CUNY email you used when you submitted this work.');
   }
   const [annByEmail, subByEmail] = await Promise.all([
-    db.collection('annotations').where('email', '==', e).get(),
-    db.collection('submissions').where('email', '==', e).get()
+    db.collection('annotations').where('email', '==', e).where('status', '==', LIVE).get(),
+    db.collection('submissions').where('email', '==', e).where('status', '==', LIVE).get()
   ]);
   return {
     annotations: annByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() })),

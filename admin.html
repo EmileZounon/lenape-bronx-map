@@ -96,7 +96,7 @@
   <div id="dashboard" style="display:none">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
       <div>
-        <h1 style="margin:0">Lenape Bronx Map — Admin</h1>
+        <h1 style="margin:0">Lenape Bronx Map Admin</h1>
         <p id="role-guidance" class="subtitle" style="margin:2px 0 0">Map admin</p>
         <p id="current-user" style="font-size:12px;color:#6b7280;margin:4px 0 0"></p>
       </div>
@@ -113,16 +113,20 @@
         <button class="btn btn--support" onclick="document.getElementById('restore-file').click()">Restore missing records</button>
         <input id="restore-file" type="file" accept="application/json,.json" hidden onchange="restoreFromExport(this.files[0]); this.value = ''">
       </div>
-      <p style="margin:10px 0 0">Restore accepts a JSON file downloaded here. Existing records are skipped and never overwritten.</p>
+      <p style="margin:10px 0 0">Restore accepts a JSON file downloaded here. Records that exist are never overwritten, and records you deleted on purpose are never brought back.</p>
+      <label style="display:flex;gap:8px;align-items:center;margin-top:8px;font-size:13px;color:#cbd5e1">
+        <input type="checkbox" id="restore-use-backups">
+        Also use the automatic backup copies in the file (disaster recovery only; may include entries deleted before October 2026)
+      </label>
       <div id="role-list" class="role-list"></div>
     </div>
 
     <div class="tabs" role="tablist" aria-label="Submission type">
       <button class="tab tab--active" role="tab" aria-selected="true" aria-controls="list" data-tab="annotations" onclick="switchTab('annotations')">
-        Notes to review <span class="count" id="count-annotations">0</span>
+        Notes <span class="count" id="count-annotations">0</span>
       </button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="list" data-tab="submissions" onclick="switchTab('submissions')">
-        Sites to review <span class="count" id="count-submissions">0</span>
+        Sites <span class="count" id="count-submissions">0</span>
       </button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="list" data-tab="leaderboard" onclick="switchTab('leaderboard')">
         Leaderboard
@@ -131,11 +135,10 @@
 
     <div id="queue-tools" class="queue-tools">
       <input id="queue-search" type="search" placeholder="Search name, school, or submission" aria-label="Search submissions">
-      <select id="status-filter" aria-label="Filter by review status">
-        <option value="pending">Needs review</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-        <option value="all">All statuses</option>
+      <select id="status-filter" aria-label="Filter by map status">
+        <option value="all">Everything (newest first)</option>
+        <option value="approved">On the map</option>
+        <option value="rejected">Hidden</option>
       </select>
     </div>
     <div id="list" role="tabpanel" tabindex="0" aria-label="Review items" aria-live="polite"></div>
@@ -157,10 +160,13 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
 
-    // Tech support is the only account that can change admin access,
-    // export or restore data, or delete records. Student reviewers are
-    // stored in Firestore admin_roles and enforced again by firestore.rules.
+    // Tech support (Emile) can do everything: show/hide, owners, admin
+    // access, export, restore, delete. Student admins can show/hide and set
+    // owners. Built-in student admins are listed here; more can be added in
+    // the Tech support panel (admin_roles). Keep in sync with firestore.rules.
     const TECH_SUPPORT_EMAIL = 'emile.giovannie@gmail.com';
+    const STUDENT_ADMIN_EMAILS = ['agescamilla2006@gmail.com'];
+    const canReview = () => currentRole === 'tech_support' || currentRole === 'content_admin';
     let currentRole = null;
 
     // ── Google sign-in ─────────────────────────────────────────────────
@@ -198,6 +204,7 @@
       if (!user || !user.emailVerified) return null;
       const email = user.email.toLowerCase();
       if (email === TECH_SUPPORT_EMAIL) return 'tech_support';
+      if (STUDENT_ADMIN_EMAILS.includes(email)) return 'content_admin';
       const roleDoc = await db.collection('admin_roles').doc(email).get();
       return roleDoc.exists && roleDoc.data().role === 'content_admin' ? 'content_admin' : null;
     }
@@ -210,8 +217,8 @@
         document.getElementById('current-user').textContent =
           `Signed in as ${user.email} · ${currentRole === 'tech_support' ? 'Tech support' : 'Student admin'}`;
         document.getElementById('role-guidance').textContent = currentRole === 'tech_support'
-          ? 'Manage student admin access and download data for backup or recovery.'
-          : 'Review new notes and site proposals, check sources, and assign student ownership.';
+          ? 'Hide or delete student work, manage admin access, and download or restore data.'
+          : 'Student work goes live right away. Hide anything that should not be on the map, and assign student owners.';
         document.getElementById('support-panel').style.display = currentRole === 'tech_support' ? 'block' : 'none';
         document.getElementById('queue-tools').style.display = 'flex';
         if (currentRole === 'tech_support') loadAdminRoles();
@@ -230,7 +237,7 @@
     let allAnnotations = [];
     let allSubmissions = [];
     let currentTab = 'annotations';
-    let currentStatus = 'pending';
+    let currentStatus = 'all';
 
     document.getElementById('status-filter').addEventListener('change', (event) => {
       currentStatus = event.target.value;
@@ -251,8 +258,8 @@
         allAnnotations = annSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort(newestFirst);
         allSubmissions = subSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort(newestFirst);
 
-        document.getElementById('count-annotations').textContent = allAnnotations.filter(a => a.status === 'pending').length;
-        document.getElementById('count-submissions').textContent = allSubmissions.filter(s => s.status === 'pending').length;
+        document.getElementById('count-annotations').textContent = allAnnotations.length;
+        document.getElementById('count-submissions').textContent = allSubmissions.length;
         render();
       } catch (err) {
         console.error('Load submissions failed:', err);
@@ -358,15 +365,16 @@
       if (filtered.length === 0) {
         const message = query
           ? 'No submissions match that search.'
-          : currentStatus === 'pending'
-            ? 'Everything is up to date. Choose another status to review earlier submissions.'
-            : 'No submissions in this status.';
+          : currentStatus === 'rejected'
+            ? 'Nothing is hidden.'
+            : 'No submissions yet.';
         list.innerHTML = `<div class="empty">${message}</div>`;
         return;
       }
 
       list.innerHTML = filtered.map(item => {
-        const isPending = item.status === 'pending';
+        const isLive = item.status === 'approved';
+        const statusLabel = isLive ? 'On the map' : item.status === 'rejected' ? 'Hidden' : 'Not on the map';
         const collection = currentTab;
 
         let body = '';
@@ -398,13 +406,13 @@
                 <span class="card__title">${esc(item.studentName)}</span>
                 <span class="timestamp"> · ${esc(item.school)} · ${fmtDate(item.createdAt)}</span>
               </div>
-              <span class="card__status card__status--${item.status}">${item.status}</span>
+              <span class="card__status card__status--${item.status}">${statusLabel}</span>
             </div>
             <div class="card__field"><strong>Owner:</strong> ${item.email ? esc(item.email) : '<span class="badge badge--unclaimed" style="margin-left:0">Unclaimed</span> no email yet, the student can\'t edit this'}
               ${item.email && !isCunyEmail(item.email) ? '<span class="badge badge--noncuny">Not a CUNY email</span>' : ''}
-              ${isRevised(item) ? `<span class="badge badge--revised">Revised after approval · ${fmtDate(item.updatedAt)}</span>` : ''}
+              ${isRevised(item) ? `<span class="badge badge--revised">Edited by student · ${fmtDate(item.updatedAt)}</span>` : ''}
             </div>
-            ${currentRole === 'content_admin' ? `
+            ${canReview() ? `
               <div class="owner-row">
                 <input id="owner-${item.id}" type="email" aria-label="Student owner email" placeholder="Student's CUNY email (e.g. name@lc.cuny.edu)" value="${esc(item.email || '')}">
                 <button class="btn btn--owner" onclick="setOwner('${collection}','${item.id}')">${item.email ? 'Change owner' : 'Set owner'}</button>
@@ -414,11 +422,10 @@
             ${sources ? `<div class="card__field"><strong>Sources:</strong> ${sources}</div>` : ''}
             ${item.videoUrl ? `<div class="card__field"><strong>Video:</strong> <a href="${esc(item.videoUrl)}" target="_blank" rel="noopener">${esc(item.videoUrl)}</a></div>` : ''}
             <div class="card__actions">
-              ${currentRole === 'content_admin' ? (isPending ? `
-                <button class="btn btn--approve" onclick="setStatus('${collection}','${item.id}','approved')">Approve</button>
-                <button class="btn btn--reject" onclick="setStatus('${collection}','${item.id}','rejected')">Reject</button>
+              ${canReview() ? (isLive ? `
+                <button class="btn btn--reject" onclick="setStatus('${collection}','${item.id}','rejected')">Hide from map</button>
               ` : `
-                <button class="btn btn--reject" onclick="setStatus('${collection}','${item.id}','pending')">Return to review</button>
+                <button class="btn btn--approve" onclick="setStatus('${collection}','${item.id}','approved')">Show on map</button>
               `) : ''}
               ${currentRole === 'tech_support' ? `<button class="btn btn--delete" onclick="deleteItem('${collection}','${item.id}')">Delete</button>` : ''}
             </div>
@@ -497,15 +504,15 @@
       }
     }
 
-    // A student edited this after it had been approved (edits go back to pending)
+    // A student edited this after posting it (only students write updatedAt;
+    // admin actions write reviewedAt)
     function isRevised(item) {
-      if (!item.approvedAt || !item.updatedAt) return false;
-      return item.updatedAt.toMillis() > item.approvedAt.toMillis();
+      return !!item.updatedAt?.toMillis;
     }
 
     // Link an entry to a student's CUNY email so they can edit it
     async function setOwner(collection, docId) {
-      if (currentRole !== 'content_admin') return;
+      if (!canReview()) return;
       const email = document.getElementById('owner-' + docId).value.trim().toLowerCase();
       if (!isCunyEmail(email)) { alert('Enter a Lehman/CUNY email (@lc.cuny.edu or @lehman.cuny.edu).'); return; }
       try {
@@ -518,13 +525,13 @@
     }
 
     async function setStatus(collection, docId, newStatus) {
-      if (currentRole !== 'content_admin') return;
+      if (!canReview()) return;
       const card = document.getElementById('card-' + docId);
       const btns = card.querySelectorAll('.btn');
       btns.forEach(b => b.disabled = true);
 
       try {
-        const update = { status: newStatus, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+        const update = { status: newStatus, reviewedAt: firebase.firestore.FieldValue.serverTimestamp() };
         if (newStatus === 'approved') update.approvedAt = firebase.firestore.FieldValue.serverTimestamp();
         await db.collection(collection).doc(docId).update(update);
         await loadData();
@@ -573,7 +580,15 @@
       return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, restoreTimestampValues(item)]));
     }
 
-    function restoreRows(payload, collection, backupCollection) {
+    // Deleted on purpose before tombstones existed (2026-10-01 to 10-12).
+    const KNOWN_DELETED = new Set([
+      'annotations_Hz5BTwpEqBFp1C9okYqA', 'annotations_RHlG6KsRlqZdnsYSQAEN',
+      'annotations_SJ5kaYJkg3HzAi5h8bmO', 'annotations_oQy344fGHDahrtkL9wIX',
+      'annotations_uBzCoWVVbBTG8GWqOtrD', 'annotations_wzgYyob2Uz7dHRI7ShOJ',
+      'submissions_kR1y59ErWrpO5E4enM5k'
+    ]);
+
+    function restoreRows(payload, collection, backupCollection, useBackups) {
       const records = new Map();
       const add = (row, id = row?.id) => {
         if (!row || typeof row !== 'object' || Array.isArray(row)
@@ -583,7 +598,7 @@
         records.set(id, restoreTimestampValues(data));
       };
       (Array.isArray(payload[collection]) ? payload[collection] : []).forEach(row => add(row));
-      (Array.isArray(payload[backupCollection]) ? payload[backupCollection] : []).forEach(row => {
+      (useBackups && Array.isArray(payload[backupCollection]) ? payload[backupCollection] : []).forEach(row => {
         const originalId = row?.originalId;
         if (typeof originalId !== 'string' || !originalId.trim() || originalId.length > 1500
           || originalId.includes('/') || originalId === '.' || originalId === '..') return;
@@ -613,7 +628,17 @@
         ['annotations', 'backups_annotations'],
         ['submissions', 'backups_submissions']
       ];
-      const candidates = collections.map(([name, backups]) => [name, restoreRows(payload, name, backups)]);
+      const useBackups = document.getElementById('restore-use-backups').checked;
+      const tombstones = await db.collection('deleted_records').get();
+      const deletedKeys = new Set([...KNOWN_DELETED, ...tombstones.docs.map(d => d.id)]);
+      let deletedSkipped = 0;
+      const candidates = collections.map(([name, backups]) => {
+        const rows = restoreRows(payload, name, backups, useBackups);
+        for (const id of [...rows.keys()]) {
+          if (deletedKeys.has(name + '_' + id)) { rows.delete(id); deletedSkipped++; }
+        }
+        return [name, rows];
+      });
       const candidateCount = candidates.reduce((total, [, rows]) => total + rows.size, 0);
       if (!candidateCount) {
         alert('This file does not contain any records the map can restore.');
@@ -638,7 +663,7 @@
             restored += Math.min(400, missing.length - start);
           }
         }
-        alert(`Recovery finished: ${restored} missing records restored; ${skipped} existing records left unchanged.`);
+        alert(`Recovery finished: ${restored} missing records restored; ${skipped} existing records left unchanged; ${deletedSkipped} deleted-on-purpose records skipped.`);
         await loadData();
       } catch (err) {
         console.error('Restore failed:', err);
@@ -648,14 +673,25 @@
 
     async function deleteItem(collection, docId) {
       if (currentRole !== 'tech_support') return;
-      if (!confirm('Delete this item permanently? It will leave the public map. Recovery requires an earlier downloaded export.')) return;
+      if (!confirm('Delete this permanently? A restore will never bring it back. To take it off the map but keep it, use "Hide from map" instead.')) return;
 
       const card = document.getElementById('card-' + docId);
       const btns = card.querySelectorAll('.btn');
       btns.forEach(b => b.disabled = true);
 
       try {
-        await db.collection(collection).doc(docId).delete();
+        const item = (collection === 'annotations' ? allAnnotations : allSubmissions).find(x => x.id === docId) || {};
+        const batch = db.batch();
+        batch.set(db.collection('deleted_records').doc(collection + '_' + docId), {
+          collection,
+          originalId: docId,
+          studentName: item.studentName || '',
+          summary: String(item.note || item.name || '').slice(0, 200),
+          deletedBy: auth.currentUser?.email || '',
+          deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        batch.delete(db.collection(collection).doc(docId));
+        await batch.commit();
         await loadData();
       } catch (err) {
         console.error('Delete failed:', err);

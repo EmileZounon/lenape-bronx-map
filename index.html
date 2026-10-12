@@ -1577,11 +1577,7 @@
       <div class="legend__subtitle">Student Submissions</div>
       <div class="legend__item">
         <span style="width:14px;height:14px;border-radius:50%;border:2px dashed #84BD00;display:inline-block;flex-shrink:0"></span>
-        Approved student site
-      </div>
-      <div class="legend__item">
-        <span style="width:14px;height:14px;border-radius:50%;border:2px dashed #f59e0b;display:inline-block;flex-shrink:0"></span>
-        Pending approval
+        Student site
       </div>
     </div>
   </div>
@@ -2762,7 +2758,7 @@
             <div class="my-subs-item">
               <div class="my-subs-item__header">
                 <span class="my-subs-item__type">Note — ${escapeHtml(settlement ? settlement.name : 'Settlement #' + a.settlementId)}</span>
-                <span class="my-subs-item__status my-subs-item__status--${a.status}">${a.status}</span>
+                <span class="my-subs-item__status my-subs-item__status--${a.status}">On the map</span>
               </div>
               <div class="my-subs-item__text">${escapeHtml(a.note)}</div>
               <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')">Edit</button>
@@ -2773,7 +2769,7 @@
             <div class="my-subs-item">
               <div class="my-subs-item__header">
                 <span class="my-subs-item__type">Site Proposal — ${escapeHtml(s.name)}</span>
-                <span class="my-subs-item__status my-subs-item__status--${s.status}">${s.status}</span>
+                <span class="my-subs-item__status my-subs-item__status--${s.status}">On the map</span>
               </div>
               <div class="my-subs-item__text">${escapeHtml(s.description)}</div>
               <button class="my-subs-item__edit" onclick="editSiteProposal('${s.id}')">Edit</button>
@@ -2844,7 +2840,7 @@
 
         editingSiteId = docId;
         document.getElementById('site-modal-submit').textContent = 'Update Site';
-        document.getElementById('site-modal-subtitle').textContent = 'Edit your site proposal. It will be re-submitted for approval.';
+        document.getElementById('site-modal-subtitle').textContent = 'Edit your site. Changes show on the map right away.';
         modal.hidden = false;
       } catch (err) {
         console.error('Edit site error:', err);
@@ -3256,7 +3252,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-  <script src="submit.js?v=10"></script>
+  <script src="submit.js?v=11"></script>
 
   <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDODtJJwm_y9aQieG3gE3_wAi4bjL7bfvg&callback=initMap&libraries=marker&v=weekly"></script>
 </body>

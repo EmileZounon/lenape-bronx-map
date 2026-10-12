@@ -58,7 +58,7 @@ Then open [http://localhost:8000](http://localhost:8000) in your browser.
 
 This project is designed for deployment via **GitHub Pages** from the `main` branch root (`/`).
 
-The review dashboard is at `/admin.html`. Student admins review submissions and assign ownership; Tech Support manages access, exports, recovery, and deletion. Student contributions use an email-only flow. See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for role boundaries and the paired site/Firestore deployment steps.
+Student work goes live as soon as it is submitted; admins hide or delete it later from `/admin.html`. Student admins can show or hide entries and assign owners; Tech Support also manages admin access, export, restore, and deletion. Students use an email-only flow (CUNY email, not verified). See [docs/ADMIN_GUIDE.md](docs/ADMIN_GUIDE.md) for roles and the paired site/Firestore deployment steps.
 
 ## Data Sources & Credits
 

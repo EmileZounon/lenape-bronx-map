@@ -12,11 +12,19 @@ rules_version = '2';
 // status is 'approved' (filtered client-side in submit.js), and student
 // names/emails are content the students themselves chose to publish.
 //
-// Why public update (pending only): students should be able to fix
-// mistakes before review. Once status == 'approved', updates are
-// locked to admins — preventing post-approval rewrites.
+// Student sign-in (2026-10-12): students type a CUNY email before they
+// submit or edit (honor system, no password). Rules enforce:
+//   - new entries must carry an @lc.cuny.edu or @lehman.cuny.edu email
+//   - students can edit any entry that has an owner email (approved ones
+//     too), but every student edit goes back to 'pending' for review
+//   - students can't change the owner email or who/where an entry is
+//   - entries with no owner email (pre-sign-in) are admin-only until an
+//     admin sets an owner email in admin.html
+// Ownership is checked in the browser (isMine in submit.js); rules can't
+// see who typed the email. A class roster can tighten isClassEmail later.
 //
-// Keep ADMIN_EMAILS in sync with the list in admin.html.
+// Keep the admin list in sync with ADMIN_EMAILS in admin.html, and the
+// domains in sync with CUNY_DOMAINS in submit.js.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -28,43 +36,58 @@ service cloud.firestore {
       return request.auth != null
         && request.auth.token.email_verified == true
         && request.auth.token.email in [
-          'emile.giovannie@gmail.com'
+          'emile.giovannie@gmail.com',
+          'agescamilla2006@gmail.com'
         ];
     }
 
-    // True if the existing doc is still pending and the update keeps it
-    // pending (students can't self-approve by editing). Size guarded.
-    function isPendingEditOfAnnotation() {
-      return resource.data.status == 'pending'
-        && request.resource.data.status == 'pending'
-        && request.resource.size() < 50000;
+    // Owner email must be a CUNY address. Roster check goes here later.
+    function isClassEmail(email) {
+      return email is string
+        && email.matches('^[^@A-Z]+@(lc|lehman)[.]cuny[.]edu$');
     }
 
-    function isPendingEditOfSubmission() {
-      return resource.data.status == 'pending'
+    // Student edit: entry has an owner, owner unchanged, goes back to
+    // pending (students can't self-approve), only content fields change.
+    function isStudentEdit(editable, maxSize) {
+      return resource.data.get('email', '') != ''
+        && request.resource.data.get('email', '') == resource.data.email
         && request.resource.data.status == 'pending'
-        && request.resource.size() < 100000;
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(editable)
+        && request.resource.size() < maxSize;
+    }
+
+    function isStudentEditOfAnnotation() {
+      return isStudentEdit(['note', 'sources', 'videoUrl', 'photos', 'status', 'updatedAt'], 50000);
+    }
+
+    function isStudentEditOfSubmission() {
+      return isStudentEdit(['name', 'description', 'sources', 'videoUrl', 'photos', 'status', 'updatedAt'], 100000);
     }
 
     // ──────────────────────────────────────────────────────────────────
     // Public submissions (student-proposed new sites). Anyone can read
-    // (map display) and create. Students can edit while pending.
+    // (map display); CUNY-email students can create and edit their own.
     // Only admins can approve, reject, or delete.
     // ──────────────────────────────────────────────────────────────────
     match /submissions/{id} {
       allow read: if true;
       allow create: if
         request.resource.data.keys().hasAny(['student_name','studentName','name'])
+        && isClassEmail(request.resource.data.get('email', null))
+        && request.resource.data.status == 'pending'
         && request.resource.size() < 100000;
-      allow update: if isAdmin() || isPendingEditOfSubmission();
+      allow update: if isAdmin() || isStudentEditOfSubmission();
       allow delete: if isAdmin();
     }
 
     // Public annotations (notes attached to existing settlements).
     match /annotations/{id} {
       allow read: if true;
-      allow create: if request.resource.size() < 50000;
-      allow update: if isAdmin() || isPendingEditOfAnnotation();
+      allow create: if isClassEmail(request.resource.data.get('email', null))
+        && request.resource.data.status == 'pending'
+        && request.resource.size() < 50000;
+      allow update: if isAdmin() || isStudentEditOfAnnotation();
       allow delete: if isAdmin();
     }
 

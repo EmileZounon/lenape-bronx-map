@@ -24,6 +24,42 @@ function setSession(data) {
   localStorage.setItem('lenape_session', JSON.stringify(data));
 }
 
+function clearSession() {
+  localStorage.removeItem('lenape_session');
+}
+
+// ── Student sign-in (CUNY email, honor system) ──────────────────────────
+// Students "sign in" by typing their CUNY email; nothing is sent to their
+// inbox. The email decides which entries they can edit. firestore.rules
+// enforces the same domain list on create, and locks the owner email.
+// Keep CUNY_DOMAINS in sync with isClassEmail() in firestore.rules.
+const CUNY_DOMAINS = ['lc.cuny.edu', 'lehman.cuny.edu'];
+
+function normalizeEmail(email) {
+  return (email || '').trim().toLowerCase();
+}
+
+function isCunyEmail(email) {
+  const e = normalizeEmail(email);
+  const at = e.lastIndexOf('@');
+  if (at < 1) return false;
+  return CUNY_DOMAINS.includes(e.slice(at + 1));
+}
+
+function isSignedIn() {
+  const s = getSession();
+  return !!(s && isCunyEmail(s.email) && s.studentName);
+}
+
+// True when the signed-in student owns this entry. Entries without an
+// email (made before sign-in existed) belong to nobody until an admin
+// sets an owner email in admin.html.
+function isMine(entry) {
+  const s = getSession();
+  if (!s || !entry || !entry.email) return false;
+  return normalizeEmail(entry.email) === normalizeEmail(s.email);
+}
+
 // ── School name fuzzy match ─────────────────────────────────────────────
 // 1. Normalizes (lowercase, strips suffixes / punctuation).
 // 2. Checks alias groups — schools that share a community (e.g., Macaulay
@@ -153,7 +189,7 @@ async function submitAnnotation({ settlementId, studentName, className, school, 
     studentName: studentName.trim(),
     className: className.trim(),
     school: school.trim(),
-    email: email.trim(),
+    email: normalizeEmail(email),
     note: note.trim(),
     sources: source.trim() ? [source.trim()] : [],
     photos: photoUrls,
@@ -197,7 +233,7 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
     studentName: studentName.trim(),
     className: className.trim(),
     school: school.trim(),
-    email: email.trim(),
+    email: normalizeEmail(email),
     status: 'pending',
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -212,7 +248,8 @@ async function submitSiteProposal({ name, lat, lng, description, source, student
 }
 
 // ── Update an existing annotation ───────────────────────────────────────
-async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [], email = '' }) {
+// Any edit, including to approved work, goes back to 'pending' for review.
+async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [] }) {
   const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'annotations') : [];
   const updates = {
     note: note.trim(),
@@ -224,14 +261,11 @@ async function updateAnnotation(docId, { note, source, videoUrl = '', photos = [
   if (newPhotoUrls.length > 0) {
     updates.photos = newPhotoUrls;
   }
-  if (email.trim()) {
-    updates.email = email.trim();
-  }
   await db.collection('annotations').doc(docId).update(updates);
 }
 
 // ── Update an existing site proposal ────────────────────────────────────
-async function updateSiteProposal(docId, { name, description, source, videoUrl = '', photos = [], email = '' }) {
+async function updateSiteProposal(docId, { name, description, source, videoUrl = '', photos = [] }) {
   const newPhotoUrls = photos.length > 0 ? await uploadPhotos(photos, 'submissions') : [];
   const updates = {
     name: name.trim(),
@@ -244,41 +278,18 @@ async function updateSiteProposal(docId, { name, description, source, videoUrl =
   if (newPhotoUrls.length > 0) {
     updates.photos = newPhotoUrls;
   }
-  if (email.trim()) {
-    updates.email = email.trim();
-  }
   await db.collection('submissions').doc(docId).update(updates);
 }
 
-// ── Load all submissions by email, falling back to name+school ───────────
-async function loadSubmissionsByEmail(email, studentName, school) {
-  // Query by email
+// ── Load all submissions owned by an email ───────────────────────────────
+async function loadSubmissionsByEmail(email) {
+  const e = normalizeEmail(email);
   const [annByEmail, subByEmail] = await Promise.all([
-    db.collection('annotations').where('email', '==', email).get(),
-    db.collection('submissions').where('email', '==', email).get()
+    db.collection('annotations').where('email', '==', e).get(),
+    db.collection('submissions').where('email', '==', e).get()
   ]);
-
-  const annotations = annByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  const submissions = subByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-  const seenIds = new Set([...annotations.map(a => a.id), ...submissions.map(s => s.id)]);
-
-  // Also query by name+school to find old submissions without email
-  if (studentName && school) {
-    const [annByName, subByName] = await Promise.all([
-      db.collection('annotations').where('studentName', '==', studentName).where('school', '==', school).get(),
-      db.collection('submissions').where('studentName', '==', studentName).where('school', '==', school).get()
-    ]);
-    annByName.docs.forEach(doc => {
-      if (!seenIds.has(doc.id)) {
-        annotations.push({ id: doc.id, ...doc.data() });
-      }
-    });
-    subByName.docs.forEach(doc => {
-      if (!seenIds.has(doc.id)) {
-        submissions.push({ id: doc.id, ...doc.data() });
-      }
-    });
-  }
-
-  return { annotations, submissions };
+  return {
+    annotations: annByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+    submissions: subByEmail.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  };
 }

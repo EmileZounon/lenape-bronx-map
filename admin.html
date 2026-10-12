@@ -45,6 +45,13 @@
     .medal { font-size: 16px; margin-right: 4px; }
     a { color: #60a5fa; }
     .timestamp { color: #64748b; font-size: 12px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
+    .badge--unclaimed { background: #334155; color: #cbd5e1; }
+    .badge--revised { background: #1e3a8a; color: #93c5fd; }
+    .badge--noncuny { background: #78350f; color: #fbbf24; }
+    .owner-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+    .owner-row input { flex: 1; min-width: 220px; padding: 7px 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 13px; }
+    .btn--owner { background: #1e40af; color: #fff; }
     #login { max-width: 360px; margin: 80px auto; text-align: center; }
     #login input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 14px; margin: 12px 0; }
     #login button { width: 100%; padding: 10px; border-radius: 6px; border: none; background: #1e40af; color: #fff; font-size: 14px; cursor: pointer; }
@@ -113,7 +120,8 @@
     // Emails allowed to sign in and manage the map. Add new admins here
     // AND in firestore.rules (keep the two in sync).
     const ADMIN_EMAILS = [
-      'emile.giovannie@gmail.com'
+      'emile.giovannie@gmail.com',
+      'agescamilla2006@gmail.com'
     ];
 
     // ── Google sign-in ─────────────────────────────────────────────────
@@ -198,23 +206,22 @@
       const counts = {};
 
       // Count annotations per student
-      allAnnotations.forEach(a => {
-        const name = (a.studentName || 'Unknown').trim();
-        if (!counts[name]) counts[name] = { notes: 0, sites: 0, school: a.school || '' };
-        counts[name].notes++;
-        if (!counts[name].school && a.school) counts[name].school = a.school;
-      });
+      // Key by owner email so one student = one row even if they typed
+      // their name differently; unclaimed entries fall back to the name.
+      const keyOf = x => (x.email || '').toLowerCase() || 'name:' + (x.studentName || 'Unknown').trim();
+      const bump = (x, field) => {
+        const k = keyOf(x);
+        if (!counts[k]) counts[k] = { name: (x.studentName || 'Unknown').trim(), email: (x.email || '').toLowerCase(), notes: 0, sites: 0, school: x.school || '' };
+        counts[k][field]++;
+        if (!counts[k].school && x.school) counts[k].school = x.school;
+      };
+      allAnnotations.forEach(a => bump(a, 'notes'));
 
       // Count site proposals per student
-      allSubmissions.forEach(s => {
-        const name = (s.studentName || 'Unknown').trim();
-        if (!counts[name]) counts[name] = { notes: 0, sites: 0, school: s.school || '' };
-        counts[name].sites++;
-        if (!counts[name].school && s.school) counts[name].school = s.school;
-      });
+      allSubmissions.forEach(s => bump(s, 'sites'));
 
-      const rows = Object.entries(counts)
-        .map(([name, c]) => ({ name, ...c, total: c.notes + c.sites }))
+      const rows = Object.values(counts)
+        .map(c => ({ ...c, total: c.notes + c.sites }))
         .sort((a, b) => b.total - a.total);
 
       if (rows.length === 0) {
@@ -240,7 +247,7 @@
             ${rows.map((r, i) => `
               <tr>
                 <td class="rank">${i < 3 ? `<span class="medal">${medals[i]}</span>` : i + 1}</td>
-                <td class="name">${esc(r.name)}</td>
+                <td class="name">${esc(r.name)}${r.email ? `<div class="timestamp">${esc(r.email)}</div>` : '<span class="badge badge--unclaimed">Unclaimed</span>'}</td>
                 <td>${esc(r.school)}</td>
                 <td class="num">${r.notes}</td>
                 <td class="num">${r.sites}</td>
@@ -308,7 +315,14 @@
               </div>
               <span class="card__status card__status--${item.status}">${item.status}</span>
             </div>
-            ${item.email ? `<div class="card__field"><strong>Email:</strong> ${esc(item.email)}</div>` : ''}
+            <div class="card__field"><strong>Owner:</strong> ${item.email ? esc(item.email) : '<span class="badge badge--unclaimed" style="margin-left:0">Unclaimed</span> no email yet, the student can\'t edit this'}
+              ${item.email && !isCunyEmail(item.email) ? '<span class="badge badge--noncuny">Not a CUNY email</span>' : ''}
+              ${isRevised(item) ? `<span class="badge badge--revised">Revised after approval · ${fmtDate(item.updatedAt)}</span>` : ''}
+            </div>
+            <div class="owner-row">
+              <input id="owner-${item.id}" type="email" placeholder="Student's CUNY email (e.g. name@lc.cuny.edu)" value="${esc(item.email || '')}">
+              <button class="btn btn--owner" onclick="setOwner('${collection}','${item.id}')">${item.email ? 'Change owner' : 'Set owner'}</button>
+            </div>
             ${body}
             ${photos ? `<div class="card__photos">${photos}</div>` : ''}
             ${sources ? `<div class="card__field"><strong>Sources:</strong> ${sources}</div>` : ''}
@@ -327,13 +341,39 @@
       }).join('');
     }
 
+    // Keep in sync with CUNY_DOMAINS in submit.js and isClassEmail in firestore.rules
+    function isCunyEmail(email) {
+      return /^[^@\s]+@(lc|lehman)\.cuny\.edu$/.test((email || '').trim().toLowerCase());
+    }
+
+    // A student edited this after it had been approved (edits go back to pending)
+    function isRevised(item) {
+      if (!item.approvedAt || !item.updatedAt) return false;
+      return item.updatedAt.toMillis() > item.approvedAt.toMillis();
+    }
+
+    // Link an entry to a student's CUNY email so they can edit it
+    async function setOwner(collection, docId) {
+      const email = document.getElementById('owner-' + docId).value.trim().toLowerCase();
+      if (!isCunyEmail(email)) { alert('Use a CUNY email (@lc.cuny.edu or @lehman.cuny.edu).'); return; }
+      try {
+        await db.collection(collection).doc(docId).update({ email });
+        await loadData();
+      } catch (err) {
+        console.error('Set owner failed:', err);
+        alert('Failed to set owner. Check console.');
+      }
+    }
+
     async function setStatus(collection, docId, newStatus) {
       const card = document.getElementById('card-' + docId);
       const btns = card.querySelectorAll('.btn');
       btns.forEach(b => b.disabled = true);
 
       try {
-        await db.collection(collection).doc(docId).update({ status: newStatus });
+        const update = { status: newStatus };
+        if (newStatus === 'approved') update.approvedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection(collection).doc(docId).update(update);
         await loadData();
       } catch (err) {
         console.error('Status update failed:', err);

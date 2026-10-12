@@ -1647,12 +1647,26 @@
     <div class="my-subs-modal__content" style="position:relative">
       <button class="my-subs-modal__close" onclick="closeMySubsModal()">&times;</button>
       <div class="my-subs-modal__title">My Submissions</div>
-      <div class="my-subs-modal__subtitle">Enter your email to find and edit your work.</div>
-      <div class="my-subs-modal__lookup">
-        <input id="my-subs-email" type="email" placeholder="your.email@school.edu">
-        <button onclick="lookupMySubmissions()">Look Up</button>
-      </div>
+      <div class="my-subs-modal__subtitle" id="my-subs-who"></div>
       <div id="my-subs-list"></div>
+    </div>
+  </div>
+
+  <!-- Student sign-in modal (shown only when submitting or editing) -->
+  <div id="signin-modal" class="site-modal" hidden>
+    <div class="site-modal__content">
+      <div class="site-modal__title">Sign in to contribute</div>
+      <div class="site-modal__subtitle">Use your CUNY email (@lc.cuny.edu or @lehman.cuny.edu). You only do this once on this device.</div>
+      <div class="site-modal__form">
+        <input id="si-name" type="text" placeholder="Your name *" maxlength="80" autocomplete="name">
+        <input id="si-school" type="text" placeholder="School *" maxlength="80" value="Lehman College">
+        <input id="si-email" type="email" placeholder="yourname@lc.cuny.edu *" maxlength="120" autocomplete="email">
+        <div id="si-error" style="color:#ef4444;font-size:12px;min-height:16px"></div>
+        <div class="site-modal__actions">
+          <button class="site-modal__cancel" onclick="closeSignInModal()">Cancel</button>
+          <button class="site-modal__submit" onclick="handleSignIn()">Continue</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2404,7 +2418,7 @@
           <div class="detail__section-title">Submitted by</div>
           <div class="detail__section-text">${safeStudent} — ${safeSchool}</div>
         </div>
-        <button class="my-subs-item__edit" onclick="editSiteProposal('${sub.id}')" style="margin-top:8px">Edit this submission</button>
+        ${isMine(sub) ? `<button class="my-subs-item__edit" onclick="editSiteProposal('${sub.id}')" style="margin-top:8px">Edit this submission</button>` : ''}
       `;
 
       if (isMobile()) {
@@ -2450,7 +2464,7 @@
             ${safeName} · ${safeSchool}
             ${a.status === 'pending' ? ' · <span style="color:#f59e0b">Pending approval</span>' : ''}
             ${safeSource ? ` · <a href="${safeSource}" target="_blank" rel="noopener" style="color:var(--accent)">Source</a>` : ''}
-             · <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')" style="margin-left:4px">Edit</button>
+            ${isMine(a) ? ` · <button class="my-subs-item__edit" onclick="editAnnotation('${a.id}')" style="margin-left:4px">Edit</button>` : ''}
           </div>
         </div>`;
       }).join('');
@@ -2461,25 +2475,22 @@
       const form = document.getElementById('annotation-form-' + settlementId);
       if (!form) return;
       const isHidden = form.style.display === 'none';
+      if (isHidden && !isSignedIn()) {
+        requireSignIn(() => toggleAnnotationForm(settlementId));
+        return;
+      }
       form.style.display = isHidden ? 'flex' : 'none';
 
       if (!isHidden) {
         if (editingAnnotationId) {
           editingAnnotationId = null;
-          document.getElementById('af-name-' + settlementId).disabled = false;
-          document.getElementById('af-school-' + settlementId).disabled = false;
           const btn = form.querySelector('.annotation-form__submit');
           if (btn) btn.textContent = 'Submit Note';
         }
       }
 
       if (isHidden) {
-        const session = getSession();
-        if (session) {
-          document.getElementById('af-name-' + settlementId).value = session.studentName || '';
-          document.getElementById('af-school-' + settlementId).value = session.school || '';
-          document.getElementById('af-email-' + settlementId).value = session.email || '';
-        }
+        fillIdentity('af-name-' + settlementId, 'af-school-' + settlementId, 'af-email-' + settlementId);
       }
     }
 
@@ -2496,8 +2507,8 @@
         alert('Please fill in your name, school, email, and note.');
         return;
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        alert('Please enter a valid email address.');
+      if (!isCunyEmail(email)) {
+        requireSignIn(() => handleSubmitAnnotation(settlementId));
         return;
       }
 
@@ -2510,10 +2521,8 @@
 
       try {
         if (editingAnnotationId) {
-          await updateAnnotation(editingAnnotationId, { note, source, videoUrl, photos, email });
+          await updateAnnotation(editingAnnotationId, { note, source, videoUrl, photos });
           editingAnnotationId = null;
-          document.getElementById('af-name-' + settlementId).disabled = false;
-          document.getElementById('af-school-' + settlementId).disabled = false;
         } else {
           await submitAnnotation({ settlementId, studentName: name, className: '', school, email, note, source, photos, videoUrl });
         }
@@ -2620,13 +2629,7 @@
       document.getElementById('site-modal-coords').textContent =
         `📍 ${coords.lat.toFixed(5)}°N, ${Math.abs(coords.lng).toFixed(5)}°W`;
 
-      const session = getSession();
-      if (session) {
-        document.getElementById('sm-student').value = session.studentName || '';
-        document.getElementById('sm-school').value = session.school || '';
-        document.getElementById('sm-email').value = session.email || '';
-      }
-
+      fillIdentity('sm-student', 'sm-school', 'sm-email');
       modal.hidden = false;
     }
 
@@ -2634,8 +2637,6 @@
       document.getElementById('site-modal').hidden = true;
       if (editingSiteId) {
         editingSiteId = null;
-        document.getElementById('sm-student').disabled = false;
-        document.getElementById('sm-school').disabled = false;
         document.getElementById('site-modal-submit').textContent = 'Submit Site';
         document.getElementById('site-modal-subtitle').textContent = 'Fill in the details for this location.';
       }
@@ -2648,15 +2649,73 @@
       exitPinDropMode();
     }
 
+    // ── Student sign-in ──────────────────────────────────────────────────
+    let afterSignIn = null;
+
+    function requireSignIn(then) {
+      afterSignIn = then || null;
+      const session = getSession();
+      document.getElementById('si-name').value = session?.studentName || '';
+      if (session?.school) document.getElementById('si-school').value = session.school;
+      document.getElementById('si-email').value = '';
+      document.getElementById('si-error').textContent = '';
+      document.getElementById('signin-modal').hidden = false;
+      document.getElementById('si-name').focus();
+    }
+
+    function closeSignInModal() {
+      document.getElementById('signin-modal').hidden = true;
+      afterSignIn = null;
+    }
+
+    function handleSignIn() {
+      const studentName = document.getElementById('si-name').value.trim();
+      const school = document.getElementById('si-school').value.trim();
+      const email = normalizeEmail(document.getElementById('si-email').value);
+      const err = document.getElementById('si-error');
+      if (!studentName || !school || !email) { err.textContent = 'Please fill in your name, school, and email.'; return; }
+      if (!isCunyEmail(email)) { err.textContent = 'Please use your CUNY email (@lc.cuny.edu or @lehman.cuny.edu).'; return; }
+      setSession({ studentName, className: '', school, email });
+      document.getElementById('signin-modal').hidden = true;
+      updateSignInButton();
+      const then = afterSignIn;
+      afterSignIn = null;
+      if (then) then();
+    }
+
+    function signOutStudent() {
+      clearSession();
+      closeMySubsModal();
+      updateSignInButton();
+      closeDetail();
+      renderStudentSubmissions();
+    }
+
+    // Name, school and email come from the sign-in and can't be changed in forms
+    function fillIdentity(nameId, schoolId, emailId) {
+      const session = getSession() || {};
+      [[nameId, session.studentName], [schoolId, session.school], [emailId, session.email]].forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.value = val || '';
+        el.readOnly = true;
+        el.style.opacity = '0.7';
+      });
+    }
+
+    function updateSignInButton() {
+      const btn = document.getElementById('my-subs-btn');
+      if (btn) btn.textContent = isSignedIn() ? 'My Submissions' : 'Sign in';
+    }
+
     // ── My Submissions ────────────────────────────────────────────────────
     function openMySubsModal() {
-      const modal = document.getElementById('my-subs-modal');
+      if (!isSignedIn()) { requireSignIn(openMySubsModal); return; }
       const session = getSession();
-      if (session && session.email) {
-        document.getElementById('my-subs-email').value = session.email;
-      }
-      document.getElementById('my-subs-list').innerHTML = '';
-      modal.hidden = false;
+      document.getElementById('my-subs-who').innerHTML =
+        `Signed in as ${escapeHtml(session.email)} · <a href="#" onclick="signOutStudent();return false;" style="color:var(--accent)">Sign out</a>`;
+      document.getElementById('my-subs-modal').hidden = false;
+      lookupMySubmissions();
     }
 
     function closeMySubsModal() {
@@ -2664,17 +2723,14 @@
     }
 
     async function lookupMySubmissions() {
-      const email = document.getElementById('my-subs-email').value.trim();
-      if (!email) { alert('Please enter your email.'); return; }
-
+      const session = getSession();
       const listEl = document.getElementById('my-subs-list');
       listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">Looking up...</div>';
 
       try {
-        const session = getSession();
-        const { annotations, submissions } = await loadSubmissionsByEmail(email, session?.studentName, session?.school);
+        const { annotations, submissions } = await loadSubmissionsByEmail(session.email);
         if (annotations.length === 0 && submissions.length === 0) {
-          listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px 0;">No submissions found for this email.</div>';
+          listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:16px 0;">Nothing here yet. Work you add while signed in will show up here. If you made entries before sign-in existed, ask your professor to link them to your email.</div>';
           return;
         }
 
@@ -2717,6 +2773,7 @@
         const doc = await db.collection('annotations').doc(docId).get();
         if (!doc.exists) { alert('Submission not found.'); return; }
         const data = doc.data();
+        if (!isMine(data)) { alert('You can only edit your own notes.'); return; }
 
         const site = SETTLEMENTS.find(s => s.id === data.settlementId);
         if (!site) { alert('Settlement not found.'); return; }
@@ -2728,15 +2785,10 @@
           if (!form) return;
           form.style.display = 'flex';
 
-          document.getElementById('af-name-' + site.id).value = data.studentName || '';
-          document.getElementById('af-school-' + site.id).value = data.school || '';
-          document.getElementById('af-email-' + site.id).value = data.email || '';
+          fillIdentity('af-name-' + site.id, 'af-school-' + site.id, 'af-email-' + site.id);
           document.getElementById('af-note-' + site.id).value = data.note || '';
           document.getElementById('af-source-' + site.id).value = (data.sources && data.sources[0]) || '';
           document.getElementById('af-video-' + site.id).value = data.videoUrl || '';
-
-          document.getElementById('af-name-' + site.id).disabled = true;
-          document.getElementById('af-school-' + site.id).disabled = true;
 
           editingAnnotationId = docId;
           const btn = form.querySelector('.annotation-form__submit');
@@ -2756,6 +2808,7 @@
         const doc = await db.collection('submissions').doc(docId).get();
         if (!doc.exists) { alert('Submission not found.'); return; }
         const data = doc.data();
+        if (!isMine(data)) { alert('You can only edit your own site proposals.'); return; }
 
         const modal = document.getElementById('site-modal');
         document.getElementById('site-modal-coords').textContent =
@@ -2766,12 +2819,7 @@
         document.getElementById('sm-description').value = data.description || '';
         document.getElementById('sm-source').value = (data.sources && data.sources[0]) || '';
         document.getElementById('sm-video').value = data.videoUrl || '';
-        document.getElementById('sm-student').value = data.studentName || '';
-        document.getElementById('sm-school').value = data.school || '';
-        document.getElementById('sm-email').value = data.email || '';
-
-        document.getElementById('sm-student').disabled = true;
-        document.getElementById('sm-school').disabled = true;
+        fillIdentity('sm-student', 'sm-school', 'sm-email');
 
         editingSiteId = docId;
         document.getElementById('site-modal-submit').textContent = 'Update Site';
@@ -2795,8 +2843,8 @@
         alert('Please fill in all required fields (marked with *).');
         return;
       }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        alert('Please enter a valid email address.');
+      if (!isCunyEmail(email)) {
+        requireSignIn(handleSubmitSite);
         return;
       }
 
@@ -2813,7 +2861,7 @@
 
       try {
         if (editingSiteId) {
-          await updateSiteProposal(editingSiteId, { name, description, source, videoUrl, photos, email });
+          await updateSiteProposal(editingSiteId, { name, description, source, videoUrl, photos });
           editingSiteId = null;
         } else {
           await submitSiteProposal({
@@ -3154,11 +3202,14 @@
         const btn = document.getElementById('add-site-btn');
         if (btn.classList.contains('add-site-btn--active')) {
           exitPinDropMode();
+        } else if (!isSignedIn()) {
+          requireSignIn(enterPinDropMode);
         } else {
           enterPinDropMode();
         }
       });
       document.getElementById('my-subs-btn').addEventListener('click', openMySubsModal);
+      updateSignInButton();
       document.getElementById('sources-close').addEventListener('click', () => {
         document.getElementById('sources-modal').hidden = true;
       });
@@ -3176,7 +3227,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
-  <script src="submit.js?v=7"></script>
+  <script src="submit.js?v=8"></script>
 
   <!-- Admin export (visible only with ?admin in URL) -->
   <div id="admin-export" style="display:none;position:fixed;bottom:20px;right:20px;z-index:9999;">

@@ -3,88 +3,180 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lenape Bronx Map — Admin</title>
+  <title>Lenape Map Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    /* Same palette as the public map (index.html): Lehman blue + green on night slate */
+    :root {
+      --bg: #12151c;
+      --surface: #1a1d23;
+      --surface-2: #20242c;
+      --line: #2a3040;
+      --line-soft: rgba(0, 97, 160, 0.22);
+      --text: #e2e8f0;
+      --text-2: #94a3b8;
+      --muted: #5f6977;
+      --blue: #0061A0;
+      --blue-light: #3389bd;
+      --green: #84BD00;
+      --red: #ef4444;
+      --amber: #f59e0b;
+      --font: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
-    h1 { font-size: 22px; margin-bottom: 6px; }
-    .subtitle { color: #94a3b8; margin-bottom: 24px; font-size: 14px; }
-    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
-    .tab { padding: 8px 16px; border: 1px solid #334155; border-radius: 6px; background: transparent; color: #94a3b8; cursor: pointer; font-size: 14px; }
-    .tab--active { background: #1e40af; color: #fff; border-color: #1e40af; }
-    .tab .count { background: #ef4444; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
-    .card__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .card__title { font-size: 16px; font-weight: 600; }
-    .card__status { font-size: 12px; padding: 3px 10px; border-radius: 12px; }
-    .card__status--pending { background: #78350f; color: #fbbf24; }
-    .card__status--approved { background: #064e3b; color: #34d399; }
-    .card__status--rejected { background: #7f1d1d; color: #fecaca; }
-    .card__field { margin-bottom: 6px; font-size: 14px; color: #cbd5e1; }
-    .card__field strong { color: #e2e8f0; }
-    .card__note { background: #0f172a; padding: 10px; border-radius: 6px; margin: 8px 0; font-size: 14px; line-height: 1.5; }
-    .card__photos { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
-    .card__photos img { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; cursor: pointer; }
-    .card__actions { display: flex; gap: 8px; margin-top: 10px; }
-    .btn { padding: 6px 14px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 500; }
-    .btn--approve { background: #059669; color: #fff; }
-    .btn--approve:hover { background: #047857; }
-    .btn--reject { background: #dc2626; color: #fff; }
-    .btn--reject:hover { background: #b91c1c; }
-    .btn--delete { background: #581c87; color: #fff; }
-    .btn--delete:hover { background: #4a044e; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .tab:focus-visible, .btn:focus-visible, .queue-tools input:focus-visible,
-    .queue-tools select:focus-visible, .role-form input:focus-visible {
+    body {
+      font-family: var(--font); color: var(--text); min-height: 100vh;
+      background:
+        radial-gradient(1200px 500px at 85% -10%, rgba(0, 97, 160, 0.16), transparent 60%),
+        radial-gradient(900px 400px at -10% 110%, rgba(132, 189, 0, 0.07), transparent 60%),
+        var(--bg);
+      padding: 28px clamp(16px, 3vw, 40px) 60px;
+    }
+    a { color: var(--blue-light); }
+    h1 { font-size: 22px; letter-spacing: -0.2px; }
+    .subtitle { color: var(--text-2); font-size: 14px; }
+
+    /* ── Header ── */
+    .topbar { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+    .eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--green); margin-bottom: 6px; }
+    .topbar h1 { font-size: clamp(22px, 2.4vw, 30px); font-weight: 700; }
+    #role-guidance { margin-top: 6px; max-width: 640px; line-height: 1.5; }
+    #current-user { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .signout { background: transparent; color: var(--text-2); border: 1px solid var(--line); padding: 8px 14px; font-size: 13px; border-radius: 8px; cursor: pointer; font-family: var(--font); }
+    .signout:hover { color: #fff; border-color: var(--blue); }
+
+    .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; border-top: 2px solid var(--blue); }
+    .stat:nth-child(2) { border-top-color: var(--green); }
+    .stat:nth-child(3) { border-top-color: var(--red); }
+    .stat:nth-child(4) { border-top-color: var(--amber); }
+    .stat b { display: block; font-size: 24px; font-weight: 700; line-height: 1.1; }
+    .stat span { font-size: 12px; color: var(--text-2); }
+
+    /* ── Tabs + tools (sticky so filters stay in reach) ── */
+    .controls { position: sticky; top: 0; z-index: 10; padding: 12px 0; margin-bottom: 8px; background: linear-gradient(var(--bg) 75%, transparent); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+    .tab { padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--text-2); cursor: pointer; font-size: 13px; font-weight: 600; font-family: var(--font); transition: all .2s var(--ease); }
+    .tab:hover { color: #fff; border-color: var(--blue); }
+    .tab--active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .tab .count { font-family: var(--mono); font-weight: 500; background: rgba(255,255,255,0.14); border-radius: 999px; padding: 1px 7px; font-size: 11px; margin-left: 6px; }
+    .queue-tools { display: flex; gap: 8px; flex-wrap: wrap; }
+    .queue-tools input, .queue-tools select, .role-form input { min-height: 40px; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 14px; font-family: var(--font); }
+    .queue-tools input { flex: 1; min-width: 220px; }
+    .queue-tools select { min-width: 200px; }
+
+    /* ── Card grid: 2-3 per row on laptops, 1 on phones ── */
+    #list.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 14px; align-items: stretch; }
+    .card {
+      display: flex; flex-direction: column; min-width: 0;
+      background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 14px 12px;
+      border-left: 3px solid var(--green);
+      animation: rise .35s var(--ease) both;
+      transition: border-color .2s var(--ease), transform .2s var(--ease);
+    }
+    .card:hover { border-color: var(--line-soft); border-left-color: var(--green); transform: translateY(-1px); }
+    .card--rejected { border-left-color: var(--red); opacity: .82; }
+    .card--rejected:hover { border-left-color: var(--red); }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+    .card__header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+    .card__title { font-size: 15px; font-weight: 700; display: block; }
+    .card__meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; display: block; }
+    .card__place { font-size: 12px; font-weight: 600; color: var(--blue-light); text-transform: uppercase; letter-spacing: .6px; margin: 4px 0 6px; }
+    .card__status { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+    .card__status--approved { background: rgba(132,189,0,.14); color: var(--green); }
+    .card__status--rejected { background: rgba(239,68,68,.14); color: #fca5a5; }
+    .card__status--pending { background: rgba(245,158,11,.14); color: #fbbf24; }
+    .card__note { color: var(--text); font-size: 14px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; }
+    .card__note.is-open { -webkit-line-clamp: unset; display: block; }
+    .more { background: none; border: 0; color: var(--blue-light); font-size: 12px; font-weight: 600; cursor: pointer; padding: 4px 0 0; align-self: flex-start; font-family: var(--font); }
+    .card__field { font-size: 12px; color: var(--text-2); margin-top: 6px; overflow-wrap: anywhere; }
+    .card__field strong { color: var(--text); font-weight: 600; }
+    .card__photos { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .card__photos img { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; cursor: zoom-in; border: 1px solid var(--line); background: var(--surface-2); font-size: 0; color: transparent; overflow: hidden; }
+    .card__owner { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--text-2); }
+    .card__owner summary { cursor: pointer; list-style: none; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .card__owner summary::-webkit-details-marker { display: none; }
+    .card__owner summary::after { content: 'Edit'; margin-left: auto; color: var(--blue-light); font-weight: 600; }
+    .card__owner[open] summary::after { content: 'Close'; }
+    .owner-email { font-family: var(--mono); color: var(--text); }
+    .owner-row { display: flex; gap: 6px; margin-top: 8px; }
+    .owner-row input { flex: 1; min-width: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-size: 12px; font-family: var(--mono); }
+    .card__actions { display: flex; gap: 6px; margin-top: auto; padding-top: 12px; }
+    .card__actions .btn { flex: 1; }
+    .badge { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; letter-spacing: .2px; }
+    .badge--unclaimed { background: #2a3040; color: #cbd5e1; }
+    .badge--revised { background: rgba(0,97,160,.22); color: #93c5fd; }
+    .badge--noncuny { background: rgba(245,158,11,.16); color: #fbbf24; }
+
+    /* ── Buttons ── */
+    .btn { padding: 8px 12px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: var(--font); transition: all .2s var(--ease); }
+    .btn--approve { background: transparent; color: var(--green); border-color: rgba(132,189,0,.5); }
+    .btn--approve:hover { background: rgba(132,189,0,.12); }
+    .btn--reject { background: transparent; color: #fca5a5; border-color: rgba(239,68,68,.45); }
+    .btn--reject:hover { background: rgba(239,68,68,.12); }
+    .btn--delete { background: transparent; color: var(--muted); border-color: var(--line); flex: 0 0 auto !important; }
+    .btn--delete:hover { color: #fca5a5; border-color: rgba(239,68,68,.45); }
+    .btn--owner { background: var(--blue); color: #fff; }
+    .btn--support { background: var(--surface-2); color: var(--text); border-color: var(--line); }
+    .btn--support:hover { border-color: var(--blue); }
+    .btn--revoke { background: transparent; color: #fca5a5; border-color: rgba(239,68,68,.45); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .tab:focus-visible, .btn:focus-visible, .more:focus-visible, .queue-tools input:focus-visible,
+    .queue-tools select:focus-visible, .role-form input:focus-visible, .owner-row input:focus-visible, summary:focus-visible {
       outline: 3px solid #93c5fd; outline-offset: 2px;
     }
-    .empty { color: #64748b; text-align: center; padding: 40px; font-size: 14px; }
-    .leaderboard { width: 100%; border-collapse: collapse; }
-    .leaderboard th { text-align: left; padding: 10px 14px; border-bottom: 2px solid #334155; color: #94a3b8; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-    .leaderboard td { padding: 10px 14px; border-bottom: 1px solid #1e293b; font-size: 14px; }
-    .leaderboard tr:hover td { background: #1e293b; }
-    .leaderboard .rank { color: #64748b; width: 40px; }
-    .leaderboard .name { font-weight: 500; }
-    .leaderboard .num { text-align: center; width: 90px; }
-    .leaderboard .total { font-weight: 700; color: #60a5fa; }
+
+    /* ── Tech support panel ── */
+    .support-panel { background: linear-gradient(135deg, rgba(0,97,160,.16), rgba(0,97,160,.04)); border: 1px solid var(--line-soft); border-radius: 12px; padding: 16px; margin: 0 0 18px; }
+    .support-panel h2 { font-size: 13px; font-family: var(--mono); font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; color: var(--blue-light); margin-bottom: 6px; }
+    .support-panel p { color: var(--text-2); font-size: 13px; line-height: 1.5; margin-bottom: 12px; }
+    .role-form { display: flex; gap: 8px; flex-wrap: wrap; }
+    .role-form input { flex: 1; min-width: 240px; }
+    .role-list { margin-top: 12px; font-size: 13px; }
+    .role-item { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); }
+
+    /* ── Leaderboard ── */
+    .leaderboard { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+    .leaderboard th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+    .leaderboard td { padding: 10px 14px; border-bottom: 1px solid var(--line); font-size: 14px; }
+    .leaderboard tr:hover td { background: var(--surface-2); }
+    .leaderboard .rank { color: var(--muted); width: 40px; }
+    .leaderboard .name { font-weight: 600; }
+    .leaderboard .num { text-align: center; width: 90px; font-family: var(--mono); }
+    .leaderboard .total { font-weight: 700; color: var(--green); }
     .medal { font-size: 16px; margin-right: 4px; }
-    a { color: #60a5fa; }
-    .timestamp { color: #64748b; font-size: 12px; }
-    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; margin-left: 6px; }
-    .badge--unclaimed { background: #334155; color: #cbd5e1; }
-    .badge--revised { background: #1e3a8a; color: #93c5fd; }
-    .badge--noncuny { background: #78350f; color: #fbbf24; }
-    .owner-row { display: flex; gap: 8px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
-    .owner-row input { flex: 1; min-width: 220px; padding: 7px 10px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #e2e8f0; font-size: 13px; }
-    .btn--owner { background: #1e40af; color: #fff; }
-    .queue-tools { display:flex; gap:10px; flex-wrap:wrap; margin:0 0 16px; }
-    .queue-tools input, .queue-tools select, .role-form input { min-height:42px; padding:9px 12px; border-radius:6px; border:1px solid #334155; background:#0f172a; color:#e2e8f0; font-size:14px; }
-    .queue-tools input { flex:1; min-width:220px; }
-    .queue-tools select { min-width:180px; }
-    .support-panel { background:#172554; border:1px solid #1e40af; border-radius:10px; padding:16px; margin:0 0 20px; }
-    .support-panel h2 { font-size:16px; margin-bottom:6px; }
-    .support-panel p { color:#cbd5e1; font-size:13px; line-height:1.5; margin-bottom:12px; }
-    .role-form { display:flex; gap:8px; flex-wrap:wrap; }
-    .role-form input { flex:1; min-width:240px; }
-    .role-list { margin-top:12px; font-size:13px; }
-    .role-item { display:flex; gap:10px; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid #334155; }
-    .btn--support { background:#475569; color:#fff; }
-    .btn--revoke { background:#7f1d1d; color:#fff; }
-    .notice { padding:12px 14px; margin-bottom:14px; border-radius:8px; background:#172554; color:#bfdbfe; font-size:14px; }
-    @media (max-width:600px) { body { padding:12px; } .card { padding:12px; } .card__actions { flex-wrap:wrap; } .tab { padding:9px 12px; } }
-    #login { max-width: 360px; margin: 80px auto; text-align: center; flex-direction: column; align-items: stretch; }
-    #login input { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #334155; background: #1e293b; color: #e2e8f0; font-size: 14px; margin: 12px 0; }
-    #login button { width: 100%; padding: 10px; border-radius: 6px; border: none; background: #1e40af; color: #fff; font-size: 14px; cursor: pointer; }
-    #login button:hover { background: #1d4ed8; }
-    #login .error { color: #f87171; font-size: 13px; margin-top: 8px; }
+    .timestamp { color: var(--muted); font-size: 12px; font-family: var(--mono); }
+
+    .empty { grid-column: 1 / -1; color: var(--text-2); text-align: center; padding: 56px 20px; font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; }
+    .notice { padding: 12px 14px; margin-bottom: 14px; border-radius: 8px; background: rgba(0,97,160,.16); color: #bfdbfe; font-size: 14px; }
+
+    /* ── Sign-in ── */
+    #login { max-width: 380px; margin: 12vh auto 0; text-align: center; flex-direction: column; align-items: stretch; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 32px 28px; border-top: 3px solid var(--green); }
+    #login h1 { margin-bottom: 6px; }
+    #login .subtitle { margin-bottom: 22px; }
+    #login button { width: 100%; padding: 11px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    #login .error { color: #f87171; font-size: 13px; margin-top: 10px; }
+
+    @media (max-width: 720px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .queue-tools { flex-direction: column; }
+      .queue-tools input, .queue-tools select { min-width: 0; width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) { .card { animation: none; transition: none; } }
   </style>
 </head>
 <body>
 
   <!-- Google sign-in gate -->
   <div id="login">
-    <h1>Admin Panel</h1>
-    <p class="subtitle">Lenape Bronx Map</p>
+    <div class="eyebrow">Lenape Bronx Map</div>
+    <h1>Admin</h1>
+    <p class="subtitle">Sign in with the Google account Emile added.</p>
     <button id="signin-btn" onclick="signInWithGoogle()" style="display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;font-weight:500">
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 01-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/><path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/><path d="M3.964 10.706A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/><path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z" fill="#EA4335"/></svg>
       Sign in with Google
@@ -94,13 +186,21 @@
 
   <!-- Admin dashboard (hidden until login) -->
   <div id="dashboard" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+    <header class="topbar">
       <div>
-        <h1 style="margin:0">Lenape Bronx Map Admin</h1>
-        <p id="role-guidance" class="subtitle" style="margin:2px 0 0">Map admin</p>
-        <p id="current-user" style="font-size:12px;color:#6b7280;margin:4px 0 0"></p>
+        <div class="eyebrow">Lenape Bronx Map · Admin</div>
+        <h1>Student work</h1>
+        <p id="role-guidance" class="subtitle">Map admin</p>
+        <p id="current-user"></p>
       </div>
-      <button onclick="signOut()" style="background:#fff;color:#374151;border:1px solid #d1d5db;padding:6px 14px;font-size:13px;cursor:pointer;border-radius:6px">Sign out</button>
+      <button class="signout" onclick="signOut()">Sign out</button>
+    </header>
+
+    <div class="stats" aria-live="polite">
+      <div class="stat"><b id="stat-total">0</b><span>Total entries</span></div>
+      <div class="stat"><b id="stat-live">0</b><span>On the map</span></div>
+      <div class="stat"><b id="stat-hidden">0</b><span>Hidden</span></div>
+      <div class="stat"><b id="stat-unclaimed">0</b><span>No owner yet</span></div>
     </div>
 
     <div id="support-panel" class="support-panel" style="display:none">
@@ -121,6 +221,7 @@
       <div id="role-list" class="role-list"></div>
     </div>
 
+    <div class="controls">
     <div class="tabs" role="tablist" aria-label="Submission type">
       <button class="tab tab--active" role="tab" aria-selected="true" aria-controls="list" data-tab="annotations" onclick="switchTab('annotations')">
         Notes <span class="count" id="count-annotations">0</span>
@@ -141,7 +242,8 @@
         <option value="rejected">Hidden</option>
       </select>
     </div>
-    <div id="list" role="tabpanel" tabindex="0" aria-label="Review items" aria-live="polite"></div>
+    </div>
+    <div id="list" class="grid" role="tabpanel" tabindex="0" aria-label="Review items" aria-live="polite"></div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
@@ -245,6 +347,27 @@
     });
     document.getElementById('queue-search').addEventListener('input', render);
 
+    // Settlement names live in index.html (SETTLEMENTS); read them from there
+    // so cards say "Nipinichsen" instead of "Settlement 1".
+    let placeNames = null;
+    async function loadPlaceNames() {
+      if (placeNames) return;
+      placeNames = {};
+      try {
+        const html = await (await fetch('index.html', { cache: 'no-cache' })).text();
+        for (const m of html.matchAll(/id: (\d+),\s*name: '((?:[^'\\]|\\.)*)'/g)) {
+          placeNames[m[1]] = m[2].replace(/\\'/g, "'");
+        }
+      } catch (err) { console.warn('Place names unavailable:', err); }
+    }
+
+    function toggleMore(btn) {
+      const note = btn.previousElementSibling;
+      const open = note.classList.toggle('is-open');
+      btn.textContent = open ? 'Show less' : 'Show more';
+      btn.setAttribute('aria-expanded', String(open));
+    }
+
     async function loadData() {
       const list = document.getElementById('list');
       list.innerHTML = '<div class="empty">Loading submissions…</div>';
@@ -260,6 +383,12 @@
 
         document.getElementById('count-annotations').textContent = allAnnotations.length;
         document.getElementById('count-submissions').textContent = allSubmissions.length;
+        const everything = [...allAnnotations, ...allSubmissions];
+        document.getElementById('stat-total').textContent = everything.length;
+        document.getElementById('stat-live').textContent = everything.filter(x => x.status === 'approved').length;
+        document.getElementById('stat-hidden').textContent = everything.filter(x => x.status !== 'approved').length;
+        document.getElementById('stat-unclaimed').textContent = everything.filter(x => !x.email).length;
+        await loadPlaceNames();
         render();
       } catch (err) {
         console.error('Load submissions failed:', err);
@@ -351,9 +480,11 @@
     }
 
     function render() {
+      const list = document.getElementById('list');
+      list.classList.toggle('grid', currentTab !== 'leaderboard');
+      document.getElementById('queue-tools').style.visibility = currentTab === 'leaderboard' ? 'hidden' : 'visible';
       if (currentTab === 'leaderboard') return renderLeaderboard();
 
-      const list = document.getElementById('list');
       const items = currentTab === 'annotations' ? allAnnotations : allSubmissions;
       const query = document.getElementById('queue-search').value.trim().toLowerCase();
       const filtered = items.filter(item =>
@@ -379,57 +510,64 @@
 
         let body = '';
         if (currentTab === 'annotations') {
+          const place = placeNames?.[item.settlementId] || 'Settlement ' + item.settlementId;
           body = `
-            <div class="card__field"><strong>Settlement ID:</strong> ${esc(String(item.settlementId))}</div>
+            <div class="card__place">${esc(place)}</div>
             <div class="card__note">${esc(item.note)}</div>
+            ${(item.note || '').length > 260 ? '<button class="more" aria-expanded="false" onclick="toggleMore(this)">Show more</button>' : ''}
           `;
         } else {
           body = `
-            <div class="card__field"><strong>Site:</strong> ${esc(item.name)}</div>
-            <div class="card__field"><strong>Location:</strong> ${item.lat ? item.lat.toFixed(5) + '°N, ' + Math.abs(item.lng).toFixed(5) + '°W' : 'N/A'}</div>
+            <div class="card__place">${esc(item.name)} <span class="timestamp" style="text-transform:none;letter-spacing:0">${item.lat ? item.lat.toFixed(4) + '°N ' + Math.abs(item.lng).toFixed(4) + '°W' : ''}</span></div>
             <div class="card__note">${esc(item.description)}</div>
+            ${(item.description || '').length > 260 ? '<button class="more" aria-expanded="false" onclick="toggleMore(this)">Show more</button>' : ''}
           `;
         }
 
         const photos = (item.photos || []).map(url =>
-          `<img src="${esc(url)}" alt="Photo" onclick="window.open('${esc(url)}')">`
+          `<img src="${esc(url)}" alt="Student photo" loading="lazy" onclick="window.open('${esc(url)}')">`
         ).join('');
 
         const sources = (item.sources || []).map(s =>
           `<a href="${esc(s)}" target="_blank" rel="noopener">${esc(s)}</a>`
         ).join(', ');
 
+        const owner = item.email
+          ? `<span class="owner-email">${esc(item.email)}</span>`
+          : '<span class="badge badge--unclaimed">No owner yet</span>';
         return `
-          <div class="card" id="card-${item.id}">
+          <article class="card card--${esc(item.status)}" id="card-${item.id}">
             <div class="card__header">
               <div>
-                <span class="card__title">${esc(item.studentName)}</span>
-                <span class="timestamp"> · ${esc(item.school)} · ${fmtDate(item.createdAt)}</span>
+                <span class="card__title">${esc(item.studentName || 'Unknown student')}</span>
+                <span class="card__meta">${esc(item.school || '')}${item.school ? ' · ' : ''}${fmtDate(item.createdAt)}</span>
               </div>
-              <span class="card__status card__status--${item.status}">${statusLabel}</span>
+              <span class="card__status card__status--${esc(item.status)}">${statusLabel}</span>
             </div>
-            <div class="card__field"><strong>Owner:</strong> ${item.email ? esc(item.email) : '<span class="badge badge--unclaimed" style="margin-left:0">Unclaimed</span> no email yet, the student can\'t edit this'}
-              ${item.email && !isCunyEmail(item.email) ? '<span class="badge badge--noncuny">Not a CUNY email</span>' : ''}
-              ${isRevised(item) ? `<span class="badge badge--revised">Edited by student · ${fmtDate(item.updatedAt)}</span>` : ''}
-            </div>
-            ${canReview() ? `
-              <div class="owner-row">
-                <input id="owner-${item.id}" type="email" aria-label="Student owner email" placeholder="Student's CUNY email (e.g. name@lc.cuny.edu)" value="${esc(item.email || '')}">
-                <button class="btn btn--owner" onclick="setOwner('${collection}','${item.id}')">${item.email ? 'Change owner' : 'Set owner'}</button>
-              </div>` : ''}
             ${body}
             ${photos ? `<div class="card__photos">${photos}</div>` : ''}
-            ${sources ? `<div class="card__field"><strong>Sources:</strong> ${sources}</div>` : ''}
-            ${item.videoUrl ? `<div class="card__field"><strong>Video:</strong> <a href="${esc(item.videoUrl)}" target="_blank" rel="noopener">${esc(item.videoUrl)}</a></div>` : ''}
+            ${sources ? `<div class="card__field"><strong>Source:</strong> ${sources}</div>` : ''}
+            ${item.videoUrl ? `<div class="card__field"><strong>Video:</strong> <a href="${esc(item.videoUrl)}" target="_blank" rel="noopener">Watch</a></div>` : ''}
+            ${canReview() ? `
+            <details class="card__owner">
+              <summary>Owner: ${owner}
+                ${item.email && !isCunyEmail(item.email) ? '<span class="badge badge--noncuny">Not CUNY</span>' : ''}
+                ${isRevised(item) ? `<span class="badge badge--revised">Edited ${fmtDate(item.updatedAt)}</span>` : ''}
+              </summary>
+              <div class="owner-row">
+                <input id="owner-${item.id}" type="email" aria-label="Student owner email" placeholder="name@lc.cuny.edu" value="${esc(item.email || '')}">
+                <button class="btn btn--owner" onclick="setOwner('${collection}','${item.id}')">${item.email ? 'Change' : 'Set owner'}</button>
+              </div>
+            </details>` : `<div class="card__owner">Owner: ${owner}</div>`}
             <div class="card__actions">
               ${canReview() ? (isLive ? `
                 <button class="btn btn--reject" onclick="setStatus('${collection}','${item.id}','rejected')">Hide from map</button>
               ` : `
                 <button class="btn btn--approve" onclick="setStatus('${collection}','${item.id}','approved')">Show on map</button>
               `) : ''}
-              ${currentRole === 'tech_support' ? `<button class="btn btn--delete" onclick="deleteItem('${collection}','${item.id}')">Delete</button>` : ''}
+              ${currentRole === 'tech_support' ? `<button class="btn btn--delete" title="Delete permanently" onclick="deleteItem('${collection}','${item.id}')">Delete</button>` : ''}
             </div>
-          </div>
+          </article>
         `;
       }).join('');
     }

@@ -167,11 +167,14 @@
 
     async function loadData() {
       const [annSnap, subSnap] = await Promise.all([
-        db.collection('annotations').orderBy('createdAt', 'desc').get(),
-        db.collection('submissions').orderBy('createdAt', 'desc').get(),
+        db.collection('annotations').get(),
+        db.collection('submissions').get(),
       ]);
-      allAnnotations = annSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-      allSubmissions = subSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort here, not with orderBy: Firestore's orderBy silently drops
+      // docs that lack the field, which would hide them from admins.
+      const newestFirst = (a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0);
+      allAnnotations = annSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort(newestFirst);
+      allSubmissions = subSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort(newestFirst);
 
       document.getElementById('count-annotations').textContent =
         allAnnotations.filter(a => a.status === 'pending').length;
